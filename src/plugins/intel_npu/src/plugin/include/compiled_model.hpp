@@ -15,6 +15,33 @@ namespace intel_npu {
 
 class CompiledModel final : public ICompiledModel {
 public:
+    /**
+     * @brief The constructor used by the "Plugin::compile_model" method.
+     * @param model The IR of the model to be compiled
+     * @param plugin Pointer towards the NPU plugin instance
+     * @param device Backend specific object through which the inference request can be created
+     * @param compiler Module used for compiling the IR model
+     * @param profiling Flag indicating if profiling was requested. Setting this to "true" will lead to storing the
+     * "compiler" parameter inside the newly created "CompiledModel".
+     * @param config Custom configuration object
+     */
+    explicit CompiledModel(const std::shared_ptr<const ov::Model>& model,
+                           const std::shared_ptr<const ov::IPlugin>& plugin,
+                           const std::shared_ptr<IDevice>& device,
+                           const ov::SoPtr<ICompiler>& compiler,
+                           const bool profiling,
+                           const Config& config);
+
+    /**
+     * @brief The constructor used by the "Plugin::import_model" method.
+     * @param model The IR of the already compiled model
+     * @param plugin Pointer towards the NPU plugin instance
+     * @param networkDescription Object holding the compiled model within a buffer along with distinct fields for its
+     * metadata
+     * @param device Backend specific object through which the inference request can be created
+     * @param compiler If set, the module will be stored inside the newly created "CompiledModel"
+     * @param config Custom configuration object
+     */
     explicit CompiledModel(const std::shared_ptr<const ov::Model>& model,
                            const std::shared_ptr<const ov::IPlugin>& plugin,
                            const std::shared_ptr<const NetworkDescription>& networkDescription,
@@ -48,6 +75,8 @@ private:
     void initialize_properties();
 
     void configure_stream_executors();
+
+    void create_executor();
 
     std::shared_ptr<const NetworkDescription> _networkPtr;
     const std::shared_ptr<const ov::Model> _model;
