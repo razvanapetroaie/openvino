@@ -104,9 +104,9 @@ private:
      * be extracted.
      */
     template <typename T>
-    void getLayoutOrStateDescriptor(IONodeDescriptorMap& parameters,
-                                    IONodeDescriptorMap& results,
-                                    IONodeDescriptorMap& states,
+    void getLayoutOrStateDescriptor(std::vector<IODescriptor>& parameters,
+                                    std::vector<IODescriptor>& results,
+                                    std::vector<IODescriptor>& states,
                                     std::vector<std::string>& stateNames,
                                     const T& arg) const;
 
@@ -117,9 +117,9 @@ private:
                      std::vector<std::string>& inputNames,
                      std::vector<std::string>& outputNames,
                      std::vector<std::string>& stateNames,
-                     IONodeDescriptorMap& parameters,
-                     IONodeDescriptorMap& results,
-                     IONodeDescriptorMap& state) const;
+                     std::vector<IODescriptor>& parameters,
+                     std::vector<IODescriptor>& results,
+                     std::vector<IODescriptor>& state) const;
 
     template <typename T = TableExtension, typename std::enable_if_t<!NotSupportOriginalShape(T), bool> = true>
     void getMetadata(TableExtension* graphDdiTableExt,
@@ -128,9 +128,9 @@ private:
                      std::vector<std::string>& inputNames,
                      std::vector<std::string>& outputNames,
                      std::vector<std::string>& stateNames,
-                     IONodeDescriptorMap& parameters,
-                     IONodeDescriptorMap& results,
-                     IONodeDescriptorMap& state) const;
+                     std::vector<IODescriptor>& parameters,
+                     std::vector<IODescriptor>& results,
+                     std::vector<IODescriptor>& state) const;
 
     // ext version >= 1.5, support API (pfnCreate2, pfnQueryNetworkCreate2, pfnQueryContextMemory)
     template <typename T = TableExtension, typename std::enable_if_t<SupportAPIGraphQueryNetworkV2(T), bool> = true>
