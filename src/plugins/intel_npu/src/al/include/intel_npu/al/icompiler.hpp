@@ -54,6 +54,9 @@ struct NetworkMetadata final {
     std::vector<IODescriptor> outputs;
     std::vector<IODescriptor> profilingOutputs;
 
+    bool canUsePluginBatching = false;
+    size_t batchSize = 1;
+
     int numStreams = 1;
 };
 
