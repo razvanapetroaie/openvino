@@ -951,7 +951,7 @@ void LevelZeroCompilerInDriver<TableExtension>::getMetadata(TableExtension* grap
         outputs.push_back(getIODescriptor(arg, std::nullopt));
     } break;
     default: {
-        OPENVINO_THROW("Invalid ze_graph_argument_type_t found in ze_graph_argument_properties_3_t object: ", arg.type)
+        OPENVINO_THROW("Invalid ze_graph_argument_type_t found in ze_graph_argument_properties_3_t object: ", arg.type);
     }
     }
 }
@@ -999,7 +999,7 @@ void LevelZeroCompilerInDriver<TableExtension>::getMetadata(TableExtension* grap
         outputs.push_back(getIODescriptor(arg, optionalMetadata));
     } break;
     default: {
-        OPENVINO_THROW("Invalid ze_graph_argument_type_t found in ze_graph_argument_properties_3_t object: ", arg.type)
+        OPENVINO_THROW("Invalid ze_graph_argument_type_t found in ze_graph_argument_properties_3_t object: ", arg.type);
     }
     }
 }
