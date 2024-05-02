@@ -55,7 +55,7 @@ void checkLevelZeroAttributesMatch(const IODescriptor& nodeDescriptor,
     }
 }
 
-std::optional<size_t> getBatchSizeForNode(const IONodeDescriptor& nodeDescriptor,
+std::optional<size_t> getBatchSizeForNode(const IODescriptor& nodeDescriptor,
                                           const ZeroExecutor::ArgumentDescriptor& zeDescriptor) {
     Logger logger("GetBatchSizeForNode", Logger::global().level());
 
@@ -235,7 +235,7 @@ ZeroInferRequest::ZeroInferRequest(const std::shared_ptr<ZeroInitStructsHolder>&
 
     _logger.debug("ZeroInferRequest::ZeroInferRequest - checking level zero attributes and allocate tensor");
     for (const std::string& outputName : _metadata.outputNames) {
-        IONodeDescriptor& resultDescriptor = _metadata.results.at(outputName);
+        IODescriptor& resultDescriptor = _metadata.results.at(outputName);
         checkLevelZeroAttributesMatch(resultDescriptor, executorOutputDescriptors.at(outputName), outputName);
 
         // When batching is handled by the plugin we need to modify transposed shape with the original batch size since
