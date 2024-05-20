@@ -31,7 +31,9 @@ namespace driverCompilerAdapter {
     (std::is_same<T, ze_graph_dditable_ext_1_2_t>::value || std::is_same<T, ze_graph_dditable_ext_1_3_t>::value || \
      std::is_same<T, ze_graph_dditable_ext_1_4_t>::value)
 
-// For ext version >= 1.6, originalShape is avaible
+// A bug inside the driver makes the "pfnGraphGetArgumentMetadata" call not safe for use prior to
+// "ze_graph_dditable_ext_1_6_t".
+// See: E#117498
 #define NotSupportArgumentMetadata(T)                                                                              \
     (std::is_same<T, ze_graph_dditable_ext_1_2_t>::value || std::is_same<T, ze_graph_dditable_ext_1_3_t>::value || \
      std::is_same<T, ze_graph_dditable_ext_1_4_t>::value || std::is_same<T, ze_graph_dditable_ext_1_5_t>::value)
