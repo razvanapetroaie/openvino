@@ -388,5 +388,14 @@ static constexpr ov::Property<std::string, ov::PropertyMutability::RO> backend_n
  */
 static constexpr ov::Property<std::string> backend_compilation_params{"NPU_BACKEND_COMPILATION_PARAMS"};
 
+/**
+ * @brief [Only for NPU compiler]
+ * Type: Boolean, default is "false".
+ * Flags the plugin to convert the model's weights to inputs. This is done by converting the "Constant" nodes to
+ * "Parameter" before passing the "ov::Model" object to the compiler. The weights are then stored separately inside the
+ * plugin and passed as inputs at prediction time.
+ */
+static constexpr ov::Property<bool> weights_as_inputs{"NPU_WEIGHTS_AS_INPUTS"};
+
 }  // namespace intel_npu
 }  // namespace ov

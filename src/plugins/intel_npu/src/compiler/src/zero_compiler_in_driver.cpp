@@ -465,6 +465,16 @@ std::string LevelZeroCompilerInDriver<TableExtension>::serializeConfig(
         content = std::regex_replace(content, std::regex(batchstr.str()), "");
     }
 
+    if ((compilerVersion.major < 5) || (compilerVersion.major == 5 && compilerVersion.minor < 8)) {
+        std::ostringstream batchstr;
+        batchstr << ov::intel_npu::weights_as_inputs.name() << KEY_VALUE_SEPARATOR << VALUE_DELIMITER << "\\S+"
+                 << VALUE_DELIMITER;
+
+        _logger.warning(
+            "WEIGHTS_AS_INPUTS property is not suppored by this compiler version. Removing from parameters");
+        content = std::regex_replace(content, std::regex(batchstr.str()), "");
+    }
+
     // FINAL step to convert prefixes of remaining params, to ensure backwards compatibility
     // From 5.0.0, driver compiler start to use NPU_ prefix, the old version uses VPU_ prefix
     if (compilerVersion.major < 5) {

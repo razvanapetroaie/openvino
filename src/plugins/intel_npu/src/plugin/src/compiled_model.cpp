@@ -331,6 +331,12 @@ void CompiledModel::initialize_properties() {
           [](const Config& config) {
               return config.getString<BATCH_MODE>();
           }}},
+        {ov::intel_npu::weights_as_inputs.name(),
+         {false,
+          ov::PropertyMutability::RO,
+          [](const Config& config) {
+              return config.get<WEIGHTS_AS_INPUTS>();
+          }}},
     };
 
     for (auto& property : _properties) {

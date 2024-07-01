@@ -11,14 +11,13 @@
 #include "device_helpers.hpp"
 #include "intel_npu/al/config/common.hpp"
 #include "intel_npu/al/config/compiler.hpp"
-#include "intel_npu/al/config/runtime.hpp"
 #include "intel_npu/al/config/npuw.hpp"
+#include "intel_npu/al/config/runtime.hpp"
 #include "intel_npu/al/itt.hpp"
+#include "npuw/compiled_model.hpp"
 #include "openvino/op/constant.hpp"
 #include "openvino/op/parameter.hpp"
 #include "openvino/runtime/intel_npu/properties.hpp"
-
-#include "npuw/compiled_model.hpp"
 
 using namespace intel_npu;
 
@@ -533,7 +532,13 @@ Plugin::Plugin()
           ov::PropertyMutability::RW,
           [](const Config& config) {
               return config.getString<BATCH_MODE>();
-          }}}
+          }}},
+        {ov::intel_npu::weights_as_inputs.name(),
+         {false,
+          ov::PropertyMutability::RW,
+          [](const Config& config) {
+              return config.get<WEIGHTS_AS_INPUTS>();
+          }}},
     };
 
     for (auto& property : _properties) {
