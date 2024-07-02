@@ -14,6 +14,7 @@
 #include "intel_npu/al/config/runtime.hpp"
 #include "intel_npu/al/icompiler.hpp"
 #include "intel_npu/al/itt.hpp"
+#include "openvino/op/util/op_types.hpp"
 #include "openvino/pass/constant_folding.hpp"
 #include "openvino/pass/manager.hpp"
 #include "openvino/runtime/properties.hpp"
@@ -32,6 +33,16 @@ std::uint32_t hash(const std::vector<uint8_t>& data) {
     for (const auto& c : data)
         result = ((result << 7) + result) + static_cast<uint32_t>(c);
     return result;
+}
+
+std::shared_ptr<ov::Model> replaceConstantsWithParameters(const std::shared_ptr<const ov::Model> model) {
+    const std::shared_ptr<ov::Model> alteredModel = model->clone();
+
+    for (std::shared_ptr<ov::Node> node : alteredModel->get_ops()) {
+        if (!ov::op::util::is_constant(node)) {
+            continue;
+        }
+    }
 }
 
 }  // namespace
@@ -55,8 +66,14 @@ CompiledModel::CompiledModel(const std::shared_ptr<const ov::Model>& model,
     OV_ITT_SCOPED_TASK(itt::domains::NPUPlugin, "CompiledModel::CompiledModel");
     OPENVINO_ASSERT(compiler != nullptr, "NPU CompiledModel: the pointer towards the compiler object is null");
 
+    std::shared_ptr<ov::Model> alteredModel;
+    if (config.get<WEIGHTS_AS_INPUTS>()) {
+        alteredModel = replaceConstantsWithParameters(model);
+    }
+
     try {
-        _networkPtr = std::make_shared<const NetworkDescription>(compiler->compile(model, config));
+        _networkPtr = std::make_shared<const NetworkDescription>(
+            compiler->compile(!config.get<WEIGHTS_AS_INPUTS>() ? model : alteredModel, config));
     } catch (const std::exception& ex) {
         OPENVINO_THROW(ex.what());
     } catch (...) {
