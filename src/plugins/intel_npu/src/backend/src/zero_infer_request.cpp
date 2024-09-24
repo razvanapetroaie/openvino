@@ -458,6 +458,10 @@ void ZeroInferRequest::infer_async() {
     size_t inputIndex = 0;
     for (const std::shared_ptr<ov::ITensor>& userTensor : _userInputTensors) {
         const IODescriptor inputDescriptor = _metadata.inputs.at(inputIndex);
+
+        OPENVINO_ASSERT(!inputDescriptor.isInitInputWeights && !inputDescriptor.isInitOutputWeights,
+                        "This path should not be used for running inferences for the \"init\" model");
+
         if (inputDescriptor.isShapeTensor) {
             OPENVINO_ASSERT(inputDescriptor.relatedDescriptorIndex.has_value(),
                             "The link between the dynamic tensor and its shape tensor is missing, entry name: ",
@@ -468,6 +472,11 @@ void ZeroInferRequest::infer_async() {
                 const auto reverseIdx = inputDims.size() - 1 - i;
                 userTensor->data<uint32_t>()[i] = static_cast<uint32_t>(inputDims[reverseIdx]);
             }
+        }
+
+        if (inputDescriptor.isMainInputWeights) {
+            // These values were set while constructing the "CompiledModel" object
+            continue;
         }
 
         auto userRemoteTensor = std::dynamic_pointer_cast<ZeroRemoteTensor>(userTensor);
