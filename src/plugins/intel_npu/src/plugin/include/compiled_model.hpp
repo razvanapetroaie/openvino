@@ -79,6 +79,7 @@ private:
     std::map<std::string, std::tuple<bool, ov::PropertyMutability, std::function<ov::Any(const Config&)>>> _properties;
     std::vector<ov::PropertyName> _supportedProperties;
 
+    // mutable bool exportInitFlag = false;
     std::shared_ptr<IGraph> _graph;
     std::shared_ptr<IGraph> _initGraph;
     std::shared_ptr<ov::Model> _initModel;
