@@ -14,6 +14,7 @@
 #include "intel_npu/utils/logger/logger.hpp"
 #include "intel_npu/utils/zero/zero_api.hpp"
 #include "intel_npu/utils/zero/zero_result.hpp"
+#include "openvino/core/model.hpp"
 #include "openvino/util/file_util.hpp"
 #include "openvino/util/shared_object.hpp"
 #include "plugin_graph.hpp"
@@ -101,6 +102,120 @@ std::shared_ptr<IGraph> PluginCompilerAdapter::compile(const std::shared_ptr<con
                                          std::move(networkDesc.metadata),
                                          std::move(networkDesc.compiledNetwork),
                                          config);
+}
+
+std::vector<std::shared_ptr<IGraph>> PluginCompilerAdapter::compileWS(const std::shared_ptr<ov::Model>& model,
+                                                                      const Config& config) const {
+    OV_ITT_TASK_CHAIN(COMPILE_BLOB, itt::domains::NPUPlugin, "PluginCompilerAdapter", "compileWS");
+
+    auto compileNetBegin = std::chrono::steady_clock::now();
+
+    std::shared_ptr<NetworkDescription> initNetworkDescription;
+    std::shared_ptr<NetworkDescription> mainNetworkDescription;
+
+    _logger.debug("compile start");
+
+    const auto starts_with = [](const std::string& str, const std::string& prefix) {
+        return str.substr(0, prefix.size()) == prefix;
+    };
+    const auto isInit = [&](std::string name) {
+        return starts_with(name, "init");
+    };
+
+    const auto isMain = [&](std::string name) {
+        return starts_with(name, "main");
+    };
+
+    switch (config.get<SEPARATE_WEIGHTS_VERSION>()) {
+    case 1: {
+        const std::vector<std::shared_ptr<NetworkDescription>> initMainNetworkDescriptions =
+            _compiler->compileWS_v1(model, config);
+
+        initNetworkDescription = initMainNetworkDescriptions[0];
+        mainNetworkDescription = initMainNetworkDescriptions[1];
+    } break;
+    case 2: {
+        std::vector<std::shared_ptr<NetworkDescription>> initDscrs;
+        while (auto networkDescription = _compiler->compileWS_v2(model, config)) {
+            if (isInit(networkDescription->metadata.name)) {
+                initDscrs.push_back(networkDescription);
+                continue;
+            }
+            OPENVINO_ASSERT(isMain(networkDescription->metadata.name),
+                            "Unexpected network name: ",
+                            networkDescription->metadata.name);
+
+            mainNetworkDescription = std::move(networkDescription);
+            break;
+        }
+
+        // FIXME
+        initNetworkDescription = std::move(initDscrs[0]);
+    } break;
+    case 3: {
+        std::vector<std::shared_ptr<NetworkDescription>> initDscrs;
+        const std::shared_ptr<ov::Model> originalModel = model->clone();
+        std::shared_ptr<ov::Model> targetModel = model;
+        size_t i = 0;
+        while (auto networkDescription = _compiler->compileWS_v3(targetModel, config, i++)) {
+            if (isInit(networkDescription->metadata.name)) {
+                initDscrs.push_back(networkDescription);
+                targetModel = originalModel->clone();
+                continue;
+            }
+            OPENVINO_ASSERT(isMain(networkDescription->metadata.name),
+                            "Unexpected network name: ",
+                            networkDescription->metadata.name);
+
+            mainNetworkDescription = std::move(networkDescription);
+            break;
+        }
+
+        // FIXME
+        initNetworkDescription = std::move(initDscrs[0]);
+    } break;
+    default:
+        OPENVINO_THROW("Invalid \"SEPARATE_WEIGHTS_VERSION\" value found within the \"compileWS\" call");
+        break;
+    }
+
+    _logger.debug("compile end");
+
+    auto compileNetEnd = std::chrono::steady_clock::now();
+    std::cout << "Compile net time: "
+              << std::chrono::duration_cast<std::chrono::milliseconds>(compileNetEnd - compileNetBegin).count() << " ms"
+              << std::endl;
+
+    ze_graph_handle_t initGraphHandle = nullptr;
+    ze_graph_handle_t mainGraphHandle = nullptr;
+
+    if (_zeGraphExt) {
+        // Depending on the config, we may get an error when trying to get the graph handle from the compiled network
+        try {
+            initGraphHandle = _zeGraphExt->getGraphHandle(initNetworkDescription->compiledNetwork);
+            mainGraphHandle = _zeGraphExt->getGraphHandle(mainNetworkDescription->compiledNetwork);
+        } catch (...) {
+            _logger.info("Failed to obtain the level zero graph handle. Inference requests for this model are not "
+                         "allowed. Only exports are available");
+        }
+    }
+
+    auto initPluginGraph = std::make_shared<PluginGraph>(_zeGraphExt,
+                                                         _compiler,
+                                                         _zeroInitStruct,
+                                                         initGraphHandle,
+                                                         std::move(initNetworkDescription->metadata),
+                                                         std::move(initNetworkDescription->compiledNetwork),
+                                                         config);
+    auto mainPluginGraph = std::make_shared<PluginGraph>(_zeGraphExt,
+                                                         _compiler,
+                                                         _zeroInitStruct,
+                                                         mainGraphHandle,
+                                                         std::move(mainNetworkDescription->metadata),
+                                                         std::move(mainNetworkDescription->compiledNetwork),
+                                                         config);
+
+    return {initPluginGraph, mainPluginGraph};
 }
 
 std::shared_ptr<IGraph> PluginCompilerAdapter::parse(std::vector<uint8_t> network, const Config& config) const {
