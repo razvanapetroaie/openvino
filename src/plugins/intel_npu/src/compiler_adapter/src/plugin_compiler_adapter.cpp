@@ -126,13 +126,41 @@ std::vector<std::shared_ptr<IGraph>> PluginCompilerAdapter::compileWS(const std:
         return starts_with(name, "main");
     };
 
+    std::vector<std::shared_ptr<IGraph>> results;
+
     switch (config.get<SEPARATE_WEIGHTS_VERSION>()) {
     case 1: {
         const std::vector<std::shared_ptr<NetworkDescription>> initMainNetworkDescriptions =
             _compiler->compileWS_v1(model, config);
 
-        initNetworkDescription = initMainNetworkDescriptions[0];
-        mainNetworkDescription = initMainNetworkDescriptions[1];
+        OPENVINO_ASSERT(isMain(initMainNetworkDescriptions.back()->metadata.name),
+                        "Unexpected network name for main:",
+                        initMainNetworkDescriptions.back()->metadata.name);
+
+        for (auto& networkDesc : initMainNetworkDescriptions) {
+            ze_graph_handle_t graphHandle = nullptr;
+            if (_zeGraphExt) {
+                // Depending on the config, we may get an error when trying to
+                // get the graph handle from the compiled network
+                try {
+                    graphHandle = _zeGraphExt->getGraphHandle(networkDesc->compiledNetwork);
+                } catch (...) {
+                    _logger.info(
+                        "Failed to obtain the level zero graph handle. Inference requests for this model are not "
+                        "allowed. Only exports are available");
+                }
+            }
+
+            results.push_back(std::make_shared<PluginGraph>(_zeGraphExt,
+                                                            _compiler,
+                                                            _zeroInitStruct,
+                                                            graphHandle,
+                                                            std::move(networkDesc->metadata),
+                                                            std::move(networkDesc->compiledNetwork),
+                                                            config));
+        }
+
+        return results;
     } break;
     case 2: {
         std::vector<std::shared_ptr<NetworkDescription>> initDscrs;

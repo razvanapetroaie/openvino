@@ -798,7 +798,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
     OV_ITT_TASK_NEXT(PLUGIN_COMPILE_MODEL, "compile");
 
     std::shared_ptr<intel_npu::IGraph> graph;
-    std::shared_ptr<intel_npu::IGraph> initGraph;
+    std::vector<std::shared_ptr<intel_npu::IGraph>> initGraphs;
     std::shared_ptr<ov::Model> initModel;
 
     try {
@@ -810,15 +810,15 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
             initModel = model->clone();
 
             auto begin = std::chrono::steady_clock::now();
-            const std::vector<std::shared_ptr<intel_npu::IGraph>> initMainGraph =
-                compiler->compileWS(initModel, localConfig);
+            std::vector<std::shared_ptr<intel_npu::IGraph>> initMainGraph = compiler->compileWS(initModel, localConfig);
             auto end = std::chrono::steady_clock::now();
             std::cout << "compiler->compileWS() call "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
                       << std::endl;
 
-            initGraph = initMainGraph[0];
-            graph = initMainGraph[1];
+            graph = initMainGraph.back();
+            initMainGraph.pop_back();
+            initGraphs = std::move(initMainGraph);
         }
     } catch (const std::exception& ex) {
         OPENVINO_THROW(ex.what());
@@ -834,7 +834,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
                                                         device,
                                                         graph,
                                                         localConfig,
-                                                        initGraph,
+                                                        initGraphs,
                                                         initModel);
     } catch (const std::exception& ex) {
         OPENVINO_THROW(ex.what());
@@ -978,7 +978,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& stream, c
                                                                 device,
                                                                 graph,
                                                                 localConfig,
-                                                                initGraph,
+                                                                std::vector<std::shared_ptr<IGraph>>{initGraph},
                                                                 initModel);
             } else {
                 const std::shared_ptr<ov::Model> modelDummy =
