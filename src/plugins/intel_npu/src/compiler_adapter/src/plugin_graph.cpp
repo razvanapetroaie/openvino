@@ -33,7 +33,7 @@ PluginGraph::PluginGraph(const std::shared_ptr<ZeGraphExtWrappers>& zeGraphExt,
 }
 
 void PluginGraph::custom_export(std::ostream& stream,
-                                const std::shared_ptr<IGraph> initGraph,
+                                const std::vector<std::shared_ptr<IGraph>> initGraphs,
                                 const std::shared_ptr<ov::Model> initModel) const {
     std::stringstream xmlContent;
     std::stringstream binContent;
@@ -59,19 +59,23 @@ void PluginGraph::custom_export(std::ostream& stream,
     stream << mainBlobSize;
     stream.write(reinterpret_cast<const char*>(_blob.data()), _blob.size());
 
-    const auto& initBlob = initGraph->_blob;
-    uint32_t initBlobSize = static_cast<uint32_t>(initBlob.size());
-    stream << initBlobSize;
-    stream.write(reinterpret_cast<const char*>(initBlob.data()), initBlob.size());
+    // Write multiple init parts
+    uint32_t numberOfInits = static_cast<uint32_t>(initGraphs.size());
+    stream << numberOfInits;
+    stream << " ";
+    for (const auto& initGraph : initGraphs) {
+        const auto& initBlob = initGraph->_blob;
+        uint32_t initBlobSize = static_cast<uint32_t>(initBlob.size());
+        stream << initBlobSize;
+        stream.write(reinterpret_cast<const char*>(initBlob.data()), initBlob.size());
+    }
 
     if (!stream) {
         _logger.error("Write blob to stream failed. Blob is broken!");
     } else {
         if (_logger.level() >= ov::log::Level::INFO) {
             std::stringstream str;
-            str << "Blob size: " << _blob.size() + initBlob.size() << std::endl;
-            str << "Blob size with weights: "
-                << _blob.size() + initBlob.size() + 4 * sizeof(uint32_t) + xmlSize + binSize << std::endl;
+            str << "Blob size: " << _blob.size() << std::endl;
             _logger.info(str.str().c_str());
         }
         _logger.info("Write blob to stream successfully.");

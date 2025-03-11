@@ -26,7 +26,7 @@ public:
     virtual size_t export_blob(std::ostream& stream) const = 0;
 
     virtual void custom_export(std::ostream& stream,
-                               const std::shared_ptr<IGraph> initGraph,
+                               const std::vector<std::shared_ptr<IGraph>> initGraphs,
                                const std::shared_ptr<ov::Model> initModel) const {
         OPENVINO_NOT_IMPLEMENTED;
     }

@@ -938,6 +938,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& stream, c
             uint32_t xmlSize;
             uint32_t binSize;
             uint32_t blobSize;
+            uint32_t numberOfInits;
             uint32_t initBlobSize;
             std::string xml;
 
@@ -954,21 +955,26 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& stream, c
             stream >> blobSize;
             std::vector<uint8_t> blob(blobSize);
             stream.read(reinterpret_cast<char*>(blob.data()), blobSize);
-
-            stream >> initBlobSize;
-            std::vector<uint8_t> initBlob(initBlobSize);
-            stream.read(reinterpret_cast<char*>(initBlob.data()), initBlobSize);
-
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            auto initGraph = compiler->parse(std::move(initBlob), localConfig);
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "Init compiler->parse "
-                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
-                      << std::endl;
-
-            initGraph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
             auto graph = compiler->parse(std::move(blob), localConfig);
             graph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
+
+            std::vector<std::shared_ptr<IGraph>> initGraphs;
+            stream >> numberOfInits;
+            for (uint32_t initIndex = 0; initIndex < numberOfInits; ++initIndex) {
+                stream >> initBlobSize;
+                std::vector<uint8_t> initBlob(initBlobSize);
+                stream.read(reinterpret_cast<char*>(initBlob.data()), initBlobSize);
+
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                auto initGraph = compiler->parse(std::move(initBlob), localConfig);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                std::cout << "Init compiler->parse "
+                          << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
+                          << std::endl;
+
+                initGraph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
+                initGraphs.push_back(initGraph);
+            }
 
             if (!localConfig.get<BENCHMARK_INIT>()) {
                 const std::shared_ptr<ov::Model> modelDummy =
@@ -978,13 +984,15 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& stream, c
                                                                 device,
                                                                 graph,
                                                                 localConfig,
-                                                                std::vector<std::shared_ptr<IGraph>>{initGraph},
+                                                                initGraphs,
                                                                 initModel);
             } else {
-                const std::shared_ptr<ov::Model> modelDummy =
-                    create_dummy_model(initGraph->get_metadata().inputs, initGraph->get_metadata().outputs, true);
+                // Benchmarking init works only when a single init schedule is used
+                const std::shared_ptr<ov::Model> modelDummy = create_dummy_model(initGraphs[0]->get_metadata().inputs,
+                                                                                 initGraphs[0]->get_metadata().outputs,
+                                                                                 true);
                 compiledModel =
-                    std::make_shared<CompiledModel>(modelDummy, shared_from_this(), device, initGraph, localConfig);
+                    std::make_shared<CompiledModel>(modelDummy, shared_from_this(), device, initGraphs[0], localConfig);
             }
         }
     } catch (const std::exception& ex) {

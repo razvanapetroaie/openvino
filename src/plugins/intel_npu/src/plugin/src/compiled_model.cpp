@@ -134,9 +134,7 @@ std::shared_ptr<ov::ISyncInferRequest> CompiledModel::create_sync_infer_request(
 void CompiledModel::export_model(std::ostream& stream) const {
     _logger.debug("CompiledModel::export_model");
     if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0) {
-        for (const auto& initGraph : _initGraphs) {
-            _graph->custom_export(stream, initGraph, _initModel);
-        }
+        _graph->custom_export(stream, _initGraphs, _initModel);
         return;
     }
 

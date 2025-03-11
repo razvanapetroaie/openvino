@@ -67,7 +67,7 @@ size_t DriverGraph::export_blob(std::ostream& stream) const {
 }
 
 void DriverGraph::custom_export(std::ostream& stream,
-                                const std::shared_ptr<IGraph> initGraph,
+                                const std::vector<std::shared_ptr<IGraph>> initGraphs,
                                 const std::shared_ptr<ov::Model> initModel) const {
     const uint8_t* initBlobPtr = nullptr;
     const uint8_t* mainBlobPtr = nullptr;
@@ -80,6 +80,7 @@ void DriverGraph::custom_export(std::ostream& stream,
         OPENVINO_THROW("Model was imported (not compiled) by the plugin. Model export is forbidden in this case!");
     }
 
+    auto initGraph = initGraphs[0];  // TODO: adjust for multiple init parts
     _zeGraphExt->getGraphBinary(initGraph->get_handle(), initBlob, initBlobPtr, initBlobSize);
     _zeGraphExt->getGraphBinary(_handle, mainBlob, mainBlobPtr, mainBlobSize);
 
