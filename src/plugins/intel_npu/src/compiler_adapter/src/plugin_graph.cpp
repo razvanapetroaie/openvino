@@ -4,6 +4,8 @@
 
 #include "plugin_graph.hpp"
 
+#include <numeric>
+
 #include "intel_npu/config/common.hpp"
 #include "intel_npu/config/runtime.hpp"
 #include "intel_npu/utils/zero/zero_api.hpp"
@@ -55,25 +57,90 @@ void PluginGraph::custom_export(std::ostream& stream,
     stream << binSize;
     stream << binContent.rdbuf();
 
-    uint32_t mainBlobSize = static_cast<uint32_t>(_blob.size());
+    uint32_t mainBlobSize = static_cast<uint32_t>(_blobPtr->size());
     stream << mainBlobSize;
-    stream.write(reinterpret_cast<const char*>(_blob.data()), _blob.size());
+    stream.write(reinterpret_cast<const char*>(_blobPtr->get_ptr()), _blobPtr->size());
 
-    const auto& initBlob = initGraph->_blob;
-    uint32_t initBlobSize = static_cast<uint32_t>(initBlob.size());
+    const auto& initBlob = initGraph->get_blob();
+    uint32_t initBlobSize = static_cast<uint32_t>(initBlob->size());
     stream << initBlobSize;
-    stream.write(reinterpret_cast<const char*>(initBlob.data()), initBlob.size());
+    stream.write(reinterpret_cast<const char*>(initBlob->get_ptr()), initBlob->size());
 
     if (!stream) {
         _logger.error("Write blob to stream failed. Blob is broken!");
     } else {
         if (_logger.level() >= ov::log::Level::INFO) {
             std::stringstream str;
-            str << "Blob size: " << _blob.size() + initBlob.size() << std::endl;
+            str << "Blob size: " << _blobPtr->size() + initBlob->size() << std::endl;
             str << "Blob size with weights: "
-                << _blob.size() + initBlob.size() + 4 * sizeof(uint32_t) + xmlSize + binSize << std::endl;
+                << _blobPtr->size() + initBlob->size() + 4 * sizeof(uint32_t) + xmlSize + binSize << std::endl;
             _logger.info(str.str().c_str());
         }
+        _logger.info("Write blob to stream successfully.");
+    }
+}
+
+void PluginGraph::custom_export_split_init(std::ostream& stream,
+                                           const std::vector<std::shared_ptr<IGraph>>& initGraphs,
+                                           const std::shared_ptr<ov::Model>& initModel) const {
+    std::stringstream xmlContent;
+    std::stringstream binContent;
+
+    ov::pass::Manager manager("SaveModelSplitInit");
+    manager.register_pass<ov::pass::Serialize>(xmlContent, binContent);
+    manager.run_passes(initModel);
+
+    xmlContent.seekg(0, std::ios::end);
+    uint32_t xmlSize = static_cast<uint32_t>(xmlContent.tellp());
+    xmlContent.seekg(0, std::ios::beg);
+    binContent.seekg(0, std::ios::end);
+    uint32_t binSize = static_cast<uint32_t>(binContent.tellp());
+    binContent.seekg(0, std::ios::beg);
+
+    stream << xmlSize;
+    stream << xmlContent.rdbuf();
+
+    stream << binSize;
+    stream << binContent.rdbuf();
+
+    uint32_t mainBlobSize = static_cast<uint32_t>(_blobPtr->size());
+    stream << mainBlobSize;
+    stream.write(reinterpret_cast<const char*>(_blobPtr->get_ptr()), _blobPtr->size());
+
+    uint32_t initCount = static_cast<uint32_t>(initGraphs.size());
+    stream << initCount;
+    // TODO: delimiter required to separate init count from first init blob
+    // size, otherwise the stream squashes two uint32_t values together.
+    // alternatively, we could write blobs directly (no count before) and then
+    // have a delimiter *at the end* to signify "end of init blobs" (slightly
+    // better stream-length-wise?), but having explicit count means we could
+    // resize vector<blob> (slightly better memory-wise?).
+    stream << ':';  // random character
+
+    for (const auto& initGraph : initGraphs) {
+        const auto& initBlob = initGraph->get_blob();
+        uint32_t initBlobSize = static_cast<uint32_t>(initBlob->size());
+        stream << initBlobSize;
+        stream.write(reinterpret_cast<const char*>(initBlob->get_ptr()), initBlob->size());
+
+        if (!stream) {
+            _logger.error("Write blob to stream failed. Blob is broken!");
+            return;
+        }
+    }
+
+    if (_logger.level() >= ov::log::Level::INFO) {
+        const size_t totalInitBlobSize =
+            std::accumulate(initGraphs.begin(), initGraphs.end(), size_t(0), [](size_t i, const auto& graph) {
+                return i + graph->get_blob()->size();
+            });
+        std::stringstream str;
+        str << "Blob size: " << _blobPtr->size() + totalInitBlobSize << std::endl;
+        str << "Blob size with weights: "
+            << _blobPtr->size() + totalInitBlobSize + (size_t(4) + initGraphs.size()) * sizeof(uint32_t) + sizeof(char) +
+                   xmlSize + binSize
+            << std::endl;
+        _logger.info(str.str().c_str());
         _logger.info("Write blob to stream successfully.");
     }
 }

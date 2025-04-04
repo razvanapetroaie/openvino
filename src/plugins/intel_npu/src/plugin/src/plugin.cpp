@@ -184,6 +184,57 @@ void update_log_level(const std::map<std::string, std::string>& propertiesMap) {
     }
 }
 
+struct ImportDataWs {
+    std::vector<uint8_t> mainBlob;
+    std::vector<std::vector<uint8_t>> initBlobs;
+};
+
+ImportDataWs readBlobsWs_v1(std::istream& stream) {
+    ImportDataWs data;
+
+    uint32_t blobSize;
+    stream >> blobSize;
+    data.mainBlob.resize(blobSize);
+    stream.read(reinterpret_cast<char*>(data.mainBlob.data()), blobSize);
+
+    uint32_t initCount;
+    stream >> initCount;
+    char delimiter;
+    stream >> delimiter;
+    if (delimiter != ':') {
+        OPENVINO_THROW("Invalid init blob delimiter found, expecting ':', got: ", delimiter);
+    }
+
+    data.initBlobs.resize(initCount);
+    for (uint32_t i = 0; i < initCount; ++i) {
+        auto& initBlob = data.initBlobs[i];
+        uint32_t initBlobSize;
+        stream >> initBlobSize;
+        initBlob.resize(initBlobSize);
+        stream.read(reinterpret_cast<char*>(initBlob.data()), initBlobSize);
+    }
+
+    return data;
+}
+
+ImportDataWs readBlobsWs_general(std::istream& stream) {
+    ImportDataWs data;
+
+    uint32_t blobSize;
+    stream >> blobSize;
+    data.mainBlob.resize(blobSize);
+    stream.read(reinterpret_cast<char*>(data.mainBlob.data()), blobSize);
+
+    data.initBlobs.resize(1);
+    auto& initBlob = data.initBlobs[0];
+    uint32_t initBlobSize;
+    stream >> initBlobSize;
+    initBlob.resize(initBlobSize);
+    stream.read(reinterpret_cast<char*>(initBlob.data()), initBlobSize);
+
+    return data;
+}
+
 }  // namespace
 
 namespace intel_npu {
@@ -822,7 +873,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
     OV_ITT_TASK_NEXT(PLUGIN_COMPILE_MODEL, "compile");
 
     std::shared_ptr<intel_npu::IGraph> graph;
-    std::shared_ptr<intel_npu::IGraph> initGraph;
+    std::vector<std::shared_ptr<intel_npu::IGraph>> initGraphs;
     std::shared_ptr<ov::Model> initModel;
 
     try {
@@ -834,15 +885,15 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
             initModel = model->clone();
 
             auto begin = std::chrono::steady_clock::now();
-            const std::vector<std::shared_ptr<intel_npu::IGraph>> initMainGraph =
-                compiler->compileWS(initModel, localConfig);
+            std::vector<std::shared_ptr<intel_npu::IGraph>> initMainGraph = compiler->compileWS(initModel, localConfig);
             auto end = std::chrono::steady_clock::now();
             std::cout << "compiler->compileWS() call "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
                       << std::endl;
 
-            initGraph = initMainGraph[0];
-            graph = initMainGraph[1];
+            graph = initMainGraph.back();
+            initMainGraph.pop_back();
+            initGraphs = std::move(initMainGraph);
         }
     } catch (const std::exception& ex) {
         OPENVINO_THROW(ex.what());
@@ -858,7 +909,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
                                                         device,
                                                         graph,
                                                         localConfig,
-                                                        initGraph,
+                                                        initGraphs,
                                                         initModel);
     } catch (const std::exception& ex) {
         OPENVINO_THROW(ex.what());
@@ -993,8 +1044,6 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& stream, c
         } else {
             uint32_t xmlSize;
             uint32_t binSize;
-            uint32_t blobSize;
-            uint32_t initBlobSize;
             std::string xml;
 
             stream >> xmlSize;
@@ -1007,25 +1056,29 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& stream, c
 
             const std::shared_ptr<ov::Model> initModel = get_core()->read_model(xml, weightsTensor);
 
-            stream >> blobSize;
-            std::vector<uint8_t> blob(blobSize);
-            stream.read(reinterpret_cast<char*>(blob.data()), blobSize);
+            auto wsData = (localConfig.get<SEPARATE_WEIGHTS_VERSION>() == 1) ? readBlobsWs_v1(stream)
+                                                                             : readBlobsWs_general(stream);
 
-            stream >> initBlobSize;
-            std::vector<uint8_t> initBlob(initBlobSize);
-            stream.read(reinterpret_cast<char*>(initBlob.data()), initBlobSize);
+            std::vector<std::shared_ptr<IGraph>> initGraphs;
+            initGraphs.reserve(wsData.initBlobs.size());
 
-            std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-            auto initGraph =
-                compiler->parse(std::make_unique<BlobContainerVector>(std::move(std::move(initBlob))), localConfig);
-            std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
-            std::cout << "Init compiler->parse "
-                      << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
-                      << std::endl;
+            for (auto& initBlob : wsData.initBlobs) {
+                std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+                // TODO: we accept a blob container *vector* but return just one
+                // IGraph... parsing all inits at once is impossible?
+                auto initGraph =
+                    compiler->parse(std::make_unique<BlobContainerVector>(std::move(initBlob)), localConfig);
+                std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+                std::cout << "Init compiler->parse "
+                          << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
+                          << std::endl;
 
-            initGraph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
+                initGraph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
+                initGraphs.push_back(std::move(initGraph));
+            }
+
             auto graph =
-                compiler->parse(std::make_unique<BlobContainerVector>(std::move(std::move(blob))), localConfig);
+                compiler->parse(std::make_unique<BlobContainerVector>(std::move(wsData.mainBlob)), localConfig);
             graph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
 
             if (!localConfig.get<BENCHMARK_INIT>()) {
@@ -1036,13 +1089,19 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& stream, c
                                                                 device,
                                                                 graph,
                                                                 localConfig,
-                                                                initGraph,
+                                                                initGraphs,
                                                                 initModel);
             } else {
-                const std::shared_ptr<ov::Model> modelDummy =
-                    create_dummy_model(initGraph->get_metadata().inputs, initGraph->get_metadata().outputs, true);
+                // TODO: BENCHMARK_INIT must become an integer?
+                if (initGraphs.empty()) {
+                    OPENVINO_THROW("Can't BENCHMARK_INIT: single init function not found");
+                }
+
+                const std::shared_ptr<ov::Model> modelDummy = create_dummy_model(initGraphs[0]->get_metadata().inputs,
+                                                                                 initGraphs[0]->get_metadata().outputs,
+                                                                                 true);
                 compiledModel =
-                    std::make_shared<CompiledModel>(modelDummy, shared_from_this(), device, initGraph, localConfig);
+                    std::make_shared<CompiledModel>(modelDummy, shared_from_this(), device, initGraphs[0], localConfig);
             }
         }
     } catch (const std::exception& ex) {

@@ -31,6 +31,12 @@ public:
         OPENVINO_NOT_IMPLEMENTED;
     }
 
+    virtual void custom_export_split_init(std::ostream& stream,
+                                          const std::vector<std::shared_ptr<IGraph>>& initGraphs,
+                                          const std::shared_ptr<ov::Model>& initModel) const {
+        OPENVINO_NOT_IMPLEMENTED;
+    }
+
     virtual std::vector<ov::ProfilingInfo> process_profiling_output(const std::vector<uint8_t>& profData,
                                                                     const Config& config) const = 0;
 
@@ -63,7 +69,9 @@ public:
 
     const std::optional<std::size_t> get_batch_size() const;
 
-    std::vector<uint8_t> _blob;
+    const std::unique_ptr<BlobContainer>& get_blob() const {
+        return _blobPtr;
+    }
 
 protected:
     /**

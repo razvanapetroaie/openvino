@@ -29,6 +29,8 @@ const std::vector<size_t> CONSTANT_NODE_DUMMY_SHAPE{1};
 
 namespace intel_npu {
 
+#define USE_SINGLE_THREADED_RUN_INIT 0
+
 using intel_npu::envVarStrToBool;
 
 std::chrono::steady_clock::time_point begin;
@@ -39,14 +41,14 @@ CompiledModel::CompiledModel(const std::shared_ptr<const ov::Model>& model,
                              const std::shared_ptr<IDevice>& device,
                              const std::shared_ptr<IGraph>& graph,
                              const Config& config,
-                             const std::shared_ptr<IGraph>& initGraph,
+                             const std::vector<std::shared_ptr<IGraph>>& initGraphs,
                              const std::shared_ptr<ov::Model>& initModel)
     : ICompiledModel(model, plugin),
       _config(config),
       _logger("CompiledModel", config.get<LOG_LEVEL>()),
       _device(device),
       _graph(graph),
-      _initGraph(initGraph),
+      _initGraphs(initGraphs),
       _initModel(initModel) {
     OV_ITT_SCOPED_TASK(itt::domains::NPUPlugin, "CompiledModel::CompiledModel");
 
@@ -54,11 +56,21 @@ CompiledModel::CompiledModel(const std::shared_ptr<const ov::Model>& model,
     initialize_properties();
     configure_stream_executors();
 
-    if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && _initGraph != nullptr) {
+    if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && !_initGraphs.empty()) {
         if (_config.get<CREATE_EXECUTOR>() && !_config.get<DEFER_WEIGHTS_LOAD>()) {
             begin = std::chrono::steady_clock::now();
-            std::tie(_weightsInputs, _initOutputsTensor) =
-                _device->runInit(_initGraph, _initModel, get_context(), _config);
+#if USE_SINGLE_THREADED_RUN_INIT
+            for (const auto& initGraph : _initGraphs) {
+                auto [weightsInputs, initOutputsTensor] =
+                    _device->runInit(initGraph, _initModel, get_context(), _config);
+
+                add_weights_inputs(weightsInputs);
+                add_init_out_tensor(std::move(initOutputsTensor));
+            }
+#else
+            std::tie(_weightsInputs, _initOutputsTensors) =
+                _device->runInitMultiThreaded(_initGraphs, _initModel, get_context(), _config);
+#endif
             end = std::chrono::steady_clock::now();
             std::cout << "run_init() call within the \"CompiledModel\" ctor "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
@@ -85,18 +97,31 @@ std::shared_ptr<ov::IAsyncInferRequest> CompiledModel::create_infer_request() co
         _device->createInferRequest(shared_from_this(), _config);
     syncInferRequest->initialize_states();
 
-    if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && _initGraph != nullptr) {
+    if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && !_initGraphs.empty()) {
         if (!_config.get<CREATE_EXECUTOR>() || _config.get<DEFER_WEIGHTS_LOAD>()) {
             begin = std::chrono::steady_clock::now();
-            _initGraph->initialize(_config);
+            // TODO: in theory, initialize() could also be pipelined with runInit?
+            for (const auto& initGraph : _initGraphs) {
+                initGraph->initialize(_config);
+            }
             end = std::chrono::steady_clock::now();
-            std::cout << "Init graph->initialize() "
+            std::cout << "Init graph(s) initialize() "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
                       << std::endl;
 
             begin = std::chrono::steady_clock::now();
-            std::tie(_weightsInputs, _initOutputsTensor) =
-                _device->runInit(_initGraph, _initModel, get_context(), _config);
+#if USE_SINGLE_THREADED_RUN_INIT
+            for (const auto& initGraph : _initGraphs) {
+                auto [weightsInputs, initOutputsTensor] =
+                    _device->runInit(initGraph, _initModel, get_context(), _config);
+
+                add_weights_inputs(weightsInputs);
+                add_init_out_tensor(std::move(initOutputsTensor));
+            }
+#else
+            std::tie(_weightsInputs, _initOutputsTensors) =
+                _device->runInitMultiThreaded(_initGraphs, _initModel, get_context(), _config);
+#endif
             end = std::chrono::steady_clock::now();
             std::cout << "run_init() call during inference request creation "
                       << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]"
@@ -110,7 +135,7 @@ std::shared_ptr<ov::IAsyncInferRequest> CompiledModel::create_infer_request() co
         end = std::chrono::steady_clock::now();
         std::cout << "set_weights_inputs() call "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-    } else if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && _initGraph == nullptr) {
+    } else if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && !_initGraphs.empty()) {
         _logger.warning(
             "SEPARATE_WEIGHTS_VERSION config option was set but no compiled model for the init schedule was found. "
             "run_init() will not run.");
@@ -130,8 +155,16 @@ std::shared_ptr<ov::ISyncInferRequest> CompiledModel::create_sync_infer_request(
 
 void CompiledModel::export_model(std::ostream& stream) const {
     _logger.debug("CompiledModel::export_model");
-    if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0) {
-        _graph->custom_export(stream, _initGraph, _initModel);
+    const auto separateWeightsVersion = _config.get<SEPARATE_WEIGHTS_VERSION>();
+    if (separateWeightsVersion != 0) {
+        if (separateWeightsVersion == 1) {  // special
+            _graph->custom_export_split_init(stream, _initGraphs, _initModel);
+            return;
+        }
+        if (_initGraphs.size() != 1) {
+            OPENVINO_THROW("Multiple inits are not supported in SEPARATE_WEIGHTS_VERSION: ", separateWeightsVersion);
+        }
+        _graph->custom_export(stream, _initGraphs.front(), _initModel);
         return;
     }
 
@@ -443,6 +476,16 @@ void CompiledModel::initialize_properties() {
             _supportedProperties.emplace_back(property.first, std::get<1>(property.second));
         }
     }
+}
+
+void CompiledModel::add_weights_inputs(
+    std::unordered_map<std::string, std::shared_ptr<ov::ITensor>>& weightsInputs) const {
+    _weightsInputs.merge(weightsInputs);
+    OPENVINO_ASSERT(weightsInputs.empty(), "Found weights inputs collision between different inits");
+}
+
+void CompiledModel::add_init_out_tensor(ov::SoPtr<ov::ITensor> tensor) const {
+    _initOutputsTensors.push_back(std::move(tensor));
 }
 
 }  // namespace intel_npu

@@ -32,6 +32,10 @@ public:
                        const std::shared_ptr<IGraph> initGraph,
                        const std::shared_ptr<ov::Model> initModel) const override;
 
+    void custom_export_split_init(std::ostream& stream,
+                                  const std::vector<std::shared_ptr<IGraph>>& initGraphs,
+                                  const std::shared_ptr<ov::Model>& initModel) const override;
+
     std::vector<ov::ProfilingInfo> process_profiling_output(const std::vector<uint8_t>& profData,
                                                             const Config& config) const override;
 
