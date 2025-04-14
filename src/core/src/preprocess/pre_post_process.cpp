@@ -4,6 +4,8 @@
 
 #include "openvino/core/preprocess/pre_post_process.hpp"
 
+#include <openvino/core/rt_info/weightless_caching_attributes.hpp>
+
 #include "color_utils.hpp"
 #include "function_guard.hpp"
 #include "itt.hpp"
@@ -266,6 +268,28 @@ void PrePostProcessor::dump(std::ostream& str) const {
 
 std::shared_ptr<Model> PrePostProcessor::build() {
     auto function = m_impl->m_function;
+    std::map<std::string, ov::Shape> nameToShape;
+
+    for (const auto& origNode : function->get_ordered_ops()) {
+        if (!ov::is_type<ov::op::v0::Constant>(origNode)) {
+            continue;
+        }
+        const auto node = std::reinterpret_pointer_cast<ov::op::v0::Constant>(origNode);
+
+        ov::RTMap& runtimeInfoMap = node->get_rt_info();
+        const auto& weightlessCacheAttrIt = runtimeInfoMap.find(ov::WeightlessCacheAttribute::get_type_info_static());
+        if (weightlessCacheAttrIt != runtimeInfoMap.end()) {
+            auto& weightlessCacheAttr = weightlessCacheAttrIt->second.as<ov::WeightlessCacheAttribute>();
+
+            if (node->get_element_type() == weightlessCacheAttr.original_dtype &&
+                node->get_byte_size() == weightlessCacheAttr.original_size) {
+                nameToShape.emplace(node->get_friendly_name(), node->get_shape());
+                // std::cout << node->get_friendly_name() << " " << node->get_shape() << std::endl;
+            }
+        }
+    }
+    std::cout << std::endl;
+
     std::tuple<std::unordered_set<std::string>, bool> existing_names{std::unordered_set<std::string>{}, false};
     FunctionGuard guard(function);
     bool need_validate = false;
@@ -314,6 +338,30 @@ std::shared_ptr<Model> PrePostProcessor::build() {
     transformation_pipeline(function);
 
     guard.reset();
+
+    for (const auto& origNode : function->get_ordered_ops()) {
+        if (!ov::is_type<ov::op::v0::Constant>(origNode)) {
+            continue;
+        }
+
+        const auto node = std::reinterpret_pointer_cast<ov::op::v0::Constant>(origNode);
+
+        ov::RTMap& runtimeInfoMap = node->get_rt_info();
+        const auto& weightlessCacheAttrIt = runtimeInfoMap.find(ov::WeightlessCacheAttribute::get_type_info_static());
+        if (weightlessCacheAttrIt != runtimeInfoMap.end()) {
+            auto& weightlessCacheAttr = weightlessCacheAttrIt->second.as<ov::WeightlessCacheAttribute>();
+
+            if (node->get_element_type() == weightlessCacheAttr.original_dtype &&
+                node->get_byte_size() == weightlessCacheAttr.original_size) {
+                // std::cout << node->get_friendly_name() << " " << node->get_shape() << std::endl;
+
+                if (nameToShape.at(node->get_friendly_name()) != node->get_shape()) {
+                    std::cout << "Shape before: " << nameToShape.at(node->get_friendly_name())
+                              << "Shape after: " << node->get_shape() << std::endl;
+                }
+            }
+        }
+    }
     return function;
 }
 
