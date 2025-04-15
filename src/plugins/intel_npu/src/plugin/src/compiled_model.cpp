@@ -56,7 +56,7 @@ CompiledModel::CompiledModel(const std::shared_ptr<const ov::Model>& model,
     initialize_properties();
     configure_stream_executors();
 
-    if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && !_initGraphs.empty()) {
+    if (!_initGraphs.empty()) {
         if (_config.get<CREATE_EXECUTOR>() && !_config.get<DEFER_WEIGHTS_LOAD>()) {
             begin = std::chrono::steady_clock::now();
 #if USE_SINGLE_THREADED_RUN_INIT
@@ -97,7 +97,7 @@ std::shared_ptr<ov::IAsyncInferRequest> CompiledModel::create_infer_request() co
         _device->createInferRequest(shared_from_this(), _config);
     syncInferRequest->initialize_states();
 
-    if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && !_initGraphs.empty()) {
+    if (!_initGraphs.empty()) {
         if (!_config.get<CREATE_EXECUTOR>() || _config.get<DEFER_WEIGHTS_LOAD>()) {
             begin = std::chrono::steady_clock::now();
             // TODO: in theory, initialize() could also be pipelined with runInit?
@@ -135,10 +135,6 @@ std::shared_ptr<ov::IAsyncInferRequest> CompiledModel::create_infer_request() co
         end = std::chrono::steady_clock::now();
         std::cout << "set_weights_inputs() call "
                   << std::chrono::duration_cast<std::chrono::milliseconds>(end - begin).count() << "[ms]" << std::endl;
-    } else if (_config.get<SEPARATE_WEIGHTS_VERSION>() != 0 && !_initGraphs.empty()) {
-        _logger.warning(
-            "SEPARATE_WEIGHTS_VERSION config option was set but no compiled model for the init schedule was found. "
-            "run_init() will not run.");
     }
 
     return std::make_shared<AsyncInferRequest>(syncInferRequest,
@@ -155,8 +151,9 @@ std::shared_ptr<ov::ISyncInferRequest> CompiledModel::create_sync_infer_request(
 
 void CompiledModel::export_model(std::ostream& stream) const {
     _logger.debug("CompiledModel::export_model");
-    const auto separateWeightsVersion = _config.get<SEPARATE_WEIGHTS_VERSION>();
-    if (separateWeightsVersion != 0) {
+
+    if (_config.get<WEIGHTLESS_BLOB>()) {
+        const auto separateWeightsVersion = _config.get<SEPARATE_WEIGHTS_VERSION>();
         if (separateWeightsVersion == 1) {  // special
             _graph->custom_export_split_init(stream, _initGraphs, _initModel);
             return;

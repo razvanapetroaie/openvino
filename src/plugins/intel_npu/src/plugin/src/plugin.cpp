@@ -672,6 +672,12 @@ Plugin::Plugin()
           [](const Config& config) {
               return config.getString<SEPARATE_WEIGHTS_VERSION>();
           }}},
+        {ov::intel_npu::weightless_blob.name(),
+         {false,
+          ov::PropertyMutability::RW,
+          [](const Config& config) {
+              return config.getString<WEIGHTLESS_BLOB>();
+          }}},
         {ov::intel_npu::benchmark_init.name(),
          {false,
           ov::PropertyMutability::RW,
@@ -879,7 +885,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::compile_model(const std::shared_ptr<
     try {
         _logger.debug("performing compile");
 
-        if (localConfig.get<SEPARATE_WEIGHTS_VERSION>() == 0) {
+        if (!localConfig.get<WEIGHTLESS_BLOB>()) {
             graph = compiler->compile(model->clone(), localConfig);
         } else {
             initModel = model->clone();
@@ -1006,7 +1012,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& stream, c
 
         uint64_t graphSize;
         const bool skipCompatibility = localConfig.get<DISABLE_VERSION_CHECK>();
-        if (localConfig.get<SEPARATE_WEIGHTS_VERSION>() == 0) {
+        if (!localConfig.get<WEIGHTLESS_BLOB>()) {
             if (!skipCompatibility) {
                 auto storedMeta = read_metadata_from(stream);
                 if (!storedMeta->is_compatible()) {
