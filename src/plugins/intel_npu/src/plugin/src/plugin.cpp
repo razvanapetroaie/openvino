@@ -766,7 +766,7 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
     OV_ITT_SCOPED_TASK(itt::domains::NPUPlugin, "Plugin::import_model");
 
     ov::AnyMap npu_plugin_properties = properties;
-    ov::Tensor tensor;
+    ov::Tensor tensorBig, tensorSmall;
     bool tensorFromProperty = false;
 
     std::istream stream{origStream.rdbuf()};
@@ -776,16 +776,16 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
     // list of properties
     if (auto blob_it = npu_plugin_properties.find(ov::hint::compiled_blob.name());
         blob_it != npu_plugin_properties.end()) {
-        tensor = blob_it->second.as<ov::Tensor>();
+        tensorBig = blob_it->second.as<ov::Tensor>();
         tensorFromProperty = true;
         if (auto loadedFromCache = npu_plugin_properties.find(ov::loaded_from_cache.name());
             loadedFromCache != npu_plugin_properties.end() && loadedFromCache->second.as<bool>() != false) {
-            tensor = ov::Tensor(
-                tensor,
+            tensorBig = ov::Tensor(
+                tensorBig,
                 ov::Coordinate{static_cast<size_t>(origStream.tellg())},
-                ov::Coordinate{tensor.get_byte_size()});  // ROI tensor to skip OV header in case of cached blob
+                ov::Coordinate{tensorBig.get_byte_size()});  // ROI tensor to skip OV header in case of cached blob
         } else {
-            buffer = ov::SharedStreamBuffer(reinterpret_cast<char*>(tensor.data()), tensor.get_byte_size());
+            buffer = ov::SharedStreamBuffer(reinterpret_cast<char*>(tensorBig.data()), tensorBig.get_byte_size());
             stream.rdbuf(&buffer);
         }
         npu_plugin_properties.erase(blob_it);
@@ -847,7 +847,6 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
         uint64_t mainSize;
         std::vector<uint64_t> initSizes;
         const bool skipCompatibility = localConfig.get<DISABLE_VERSION_CHECK>();
-        size_t blobSize = MetadataBase::getFileSize(stream);
         if (!skipCompatibility) {
             auto storedMeta = read_metadata_from(stream);
             if (!storedMeta->is_compatible()) {
@@ -863,15 +862,14 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
         }
 
         if (tensorFromProperty == false) {  // tensor was not received from ov::compiled_blob property, copy from stream
-            tensor = ov::Tensor(ov::element::u8, ov::Shape{mainSize});
-            stream.read(tensor.data<char>(), tensor.get_byte_size());
-            stream.seekg(mainSize, std::ios_base::cur);
+            tensorSmall = ov::Tensor(ov::element::u8, ov::Shape{mainSize});
+            stream.read(tensorSmall.data<char>(), mainSize);
         } else {
-            tensor = ov::Tensor(tensor,
-                                ov::Coordinate{0},
-                                ov::Coordinate{mainSize});  // ROI tensor to skip NPU plugin metadata
+            tensorSmall = ov::Tensor(tensorBig,
+                                     ov::Coordinate{0},
+                                     ov::Coordinate{mainSize});  // ROI tensor to skip NPU plugin metadata
         }
-        auto graph = compiler->parse(std::move(tensor), !tensorFromProperty, localConfig);
+        auto graph = compiler->parse(std::move(tensorSmall), !tensorFromProperty, localConfig);
         graph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
 
         if (initSizes.empty()) {
@@ -885,16 +883,16 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
             std::vector<std::shared_ptr<IGraph>> initGraphs;
             for (uint64_t initSize : initSizes) {
                 if (tensorFromProperty == false) {
-                    tensor = ov::Tensor(ov::element::u8, ov::Shape{initSize});
-                    stream.read(tensor.data<char>(), tensor.get_byte_size());
-                    stream.seekg(initSize, std::ios_base::cur);
+                    tensorSmall = ov::Tensor(ov::element::u8, ov::Shape{initSize});
+                    stream.read(tensorSmall.data<char>(), initSize);
                 } else {
-                    tensor =
-                        ov::Tensor(tensor, ov::Coordinate{cursorPosition}, ov::Coordinate{cursorPosition + initSize});
+                    tensorSmall = ov::Tensor(tensorBig,
+                                             ov::Coordinate{cursorPosition},
+                                             ov::Coordinate{cursorPosition + initSize});
                 }
 
                 std::shared_ptr<IGraph> initGraph =
-                    compiler->parse(std::move(tensor), !tensorFromProperty, localConfig);
+                    compiler->parse(std::move(tensorSmall), !tensorFromProperty, localConfig);
                 initGraph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
                 initGraphs.push_back(initGraph);
                 cursorPosition += initSize;
