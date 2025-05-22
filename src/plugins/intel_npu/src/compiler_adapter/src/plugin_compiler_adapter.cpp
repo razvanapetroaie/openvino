@@ -116,7 +116,6 @@ std::shared_ptr<IGraph> PluginCompilerAdapter::compile(const std::shared_ptr<con
                                    _compiler);
 }
 
-<<<<<<< HEAD
 std::vector<std::shared_ptr<IGraph>> PluginCompilerAdapter::compileWS(const std::shared_ptr<ov::Model>& model,
                                                                       const Config& config) const {
     OV_ITT_TASK_CHAIN(COMPILE_BLOB, itt::domains::NPUPlugin, "PluginCompilerAdapter", "compileWS");
@@ -159,15 +158,22 @@ std::vector<std::shared_ptr<IGraph>> PluginCompilerAdapter::compileWS(const std:
         std::vector<std::shared_ptr<IGraph>> results;
         results.reserve(initMainNetworkDescriptions.size());
         for (auto& networkDesc : initMainNetworkDescriptions) {
-            auto blobContainer = std::make_unique<BlobContainerVector>(std::move(networkDesc->compiledNetwork));
+            auto tensor = ov::Tensor(ov::element::u8,
+                                     ov::Shape{networkDesc->compiledNetwork.size()},
+                                     networkDesc->compiledNetwork.data());
+            auto impl = ov::get_tensor_impl(tensor);
+            std::shared_ptr<std::vector<uint8_t>> sharedCompiledNetwork =
+                std::make_shared<std::vector<uint8_t>>(std::move(networkDesc->compiledNetwork));
+            impl._so = std::move(sharedCompiledNetwork);
+            tensor = ov::make_tensor(impl);
+
             ze_graph_handle_t graphHandle = nullptr;
             if (_zeGraphExt) {
                 // Depending on the config, we may get an error when trying to
                 // get the graph handle from the compiled network
                 try {
-                    graphHandle =
-                        _zeGraphExt->getGraphHandle(*reinterpret_cast<const uint8_t*>(blobContainer->get_ptr()),
-                                                    blobContainer->size());
+                    graphHandle = _zeGraphExt->getGraphHandle(*reinterpret_cast<const uint8_t*>(tensor.data()),
+                                                              tensor.get_byte_size());
                 } catch (...) {
                     _logger.info(
                         "Failed to obtain the level zero graph handle. Inference requests for this model are not "
@@ -179,7 +185,8 @@ std::vector<std::shared_ptr<IGraph>> PluginCompilerAdapter::compileWS(const std:
                                                       _zeroInitStruct,
                                                       graphHandle,
                                                       std::move(networkDesc->metadata),
-                                                      std::move(blobContainer),
+                                                      std::move(tensor),
+                                                      /* blobAllocatedByPlugin = */ false,
                                                       config,
                                                       _compiler));
         }
@@ -237,18 +244,33 @@ std::vector<std::shared_ptr<IGraph>> PluginCompilerAdapter::compileWS(const std:
               << std::chrono::duration_cast<std::chrono::milliseconds>(compileNetEnd - compileNetBegin).count() << " ms"
               << std::endl;
 
-    auto initContainer = std::make_unique<BlobContainerVector>(std::move(initNetworkDescription->compiledNetwork));
-    auto mainContainer = std::make_unique<BlobContainerVector>(std::move(mainNetworkDescription->compiledNetwork));
+    auto initTensor = ov::Tensor(ov::element::u8,
+                                 ov::Shape{initNetworkDescription->compiledNetwork.size()},
+                                 initNetworkDescription->compiledNetwork.data());
+    auto impl = ov::get_tensor_impl(initTensor);
+    std::shared_ptr<std::vector<uint8_t>> sharedCompiledNetwork =
+        std::make_shared<std::vector<uint8_t>>(std::move(initNetworkDescription->compiledNetwork));
+    impl._so = std::move(sharedCompiledNetwork);
+    initTensor = ov::make_tensor(impl);
+
+    auto mainTensor = ov::Tensor(ov::element::u8,
+                                 ov::Shape{mainNetworkDescription->compiledNetwork.size()},
+                                 mainNetworkDescription->compiledNetwork.data());
+    impl = ov::get_tensor_impl(mainTensor);
+    sharedCompiledNetwork = std::make_shared<std::vector<uint8_t>>(std::move(mainNetworkDescription->compiledNetwork));
+    impl._so = std::move(sharedCompiledNetwork);
+    mainTensor = ov::make_tensor(impl);
+
     ze_graph_handle_t initGraphHandle = nullptr;
     ze_graph_handle_t mainGraphHandle = nullptr;
 
     if (_zeGraphExt) {
         // Depending on the config, we may get an error when trying to get the graph handle from the compiled network
         try {
-            initGraphHandle = _zeGraphExt->getGraphHandle(*reinterpret_cast<const uint8_t*>(initContainer->get_ptr()),
-                                                          initContainer->size());
-            mainGraphHandle = _zeGraphExt->getGraphHandle(*reinterpret_cast<const uint8_t*>(mainContainer->get_ptr()),
-                                                          mainContainer->size());
+            initGraphHandle = _zeGraphExt->getGraphHandle(*reinterpret_cast<const uint8_t*>(initTensor.data()),
+                                                          initTensor.get_byte_size());
+            mainGraphHandle = _zeGraphExt->getGraphHandle(*reinterpret_cast<const uint8_t*>(mainTensor.data()),
+                                                          mainTensor.get_byte_size());
         } catch (...) {
             _logger.info("Failed to obtain the level zero graph handle. Inference requests for this model are not "
                          "allowed. Only exports are available");
@@ -259,25 +281,24 @@ std::vector<std::shared_ptr<IGraph>> PluginCompilerAdapter::compileWS(const std:
                                              _zeroInitStruct,
                                              initGraphHandle,
                                              std::move(initNetworkDescription->metadata),
-                                             std::move(initContainer),
+                                             std::move(initTensor),
+                                             /* blobAllocatedByPlugin = */ false,
                                              config,
                                              _compiler);
     auto mainGraph = std::make_shared<Graph>(_zeGraphExt,
                                              _zeroInitStruct,
                                              mainGraphHandle,
                                              std::move(mainNetworkDescription->metadata),
-                                             std::move(mainContainer),
+                                             std::move(mainTensor),
+                                             /* blobAllocatedByPlugin = */ false,
                                              config,
                                              _compiler);
 
     return {initGraph, mainGraph};
 }
 
-std::shared_ptr<IGraph> PluginCompilerAdapter::parse(std::unique_ptr<BlobContainer> blobPtr,
-=======
 std::shared_ptr<IGraph> PluginCompilerAdapter::parse(ov::Tensor blob,
                                                      bool blobAllocatedByPlugin,
->>>>>>> d72b761
                                                      const Config& config) const {
     OV_ITT_TASK_CHAIN(PARSE_BLOB, itt::domains::NPUPlugin, "PluginCompilerAdapter", "parse");
 

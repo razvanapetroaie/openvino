@@ -416,7 +416,6 @@ std::shared_ptr<IGraph> DriverCompilerAdapter::compile(const std::shared_ptr<con
                                    config);
 }
 
-<<<<<<< HEAD
 std::vector<std::shared_ptr<IGraph>> DriverCompilerAdapter::compileWS(const std::shared_ptr<ov::Model>& model,
                                                                       const Config& config) const {
     OV_ITT_TASK_CHAIN(COMPILE_BLOB, itt::domains::NPUPlugin, "DriverCompilerAdapter", "compileWS");
@@ -498,14 +497,16 @@ std::vector<std::shared_ptr<IGraph>> DriverCompilerAdapter::compileWS(const std:
                                                  _zeroInitStruct,
                                                  initGraphHandles.at(handleIndex),
                                                  std::move(initNetworkMetadata.at(handleIndex)),
-                                                 nullptr,
+                                                 /* blob = */ std::nullopt,
+                                                 /* blobAllocatedByPlugin = */ false,
                                                  config));
     }
     graphs.push_back(std::make_shared<Graph>(_zeGraphExt,
                                              _zeroInitStruct,
                                              mainGraphHandle,
                                              std::move(mainNetworkMetadata),
-                                             nullptr,
+                                             /* blob = */ std::nullopt,
+                                             /* blobAllocatedByPlugin = */ false,
                                              config));
 
     // Temporary solution: OV passes are copied here in order to increase the chances of matching the weights of the
@@ -515,11 +516,8 @@ std::vector<std::shared_ptr<IGraph>> DriverCompilerAdapter::compileWS(const std:
     return graphs;
 }
 
-std::shared_ptr<IGraph> DriverCompilerAdapter::parse(std::unique_ptr<BlobContainer> blobPtr,
-=======
 std::shared_ptr<IGraph> DriverCompilerAdapter::parse(ov::Tensor blob,
                                                      bool blobAllocatedByPlugin,
->>>>>>> d72b761
                                                      const Config& config) const {
     OV_ITT_TASK_CHAIN(PARSE_BLOB, itt::domains::NPUPlugin, "DriverCompilerAdapter", "parse");
 

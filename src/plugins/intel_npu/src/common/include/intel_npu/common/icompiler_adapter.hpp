@@ -12,13 +12,9 @@ class ICompilerAdapter {
 public:
     virtual std::shared_ptr<IGraph> compile(const std::shared_ptr<const ov::Model>& model,
                                             const Config& config) const = 0;
-<<<<<<< HEAD
     virtual std::vector<std::shared_ptr<IGraph>> compileWS(const std::shared_ptr<ov::Model>& model,
                                                            const Config& config) const = 0;
-    virtual std::shared_ptr<IGraph> parse(std::unique_ptr<BlobContainer> blobPtr, const Config& config) const = 0;
-=======
     virtual std::shared_ptr<IGraph> parse(ov::Tensor blob, bool blobAllocatedByPlugin, const Config& config) const = 0;
->>>>>>> d72b761
     virtual ov::SupportedOpsMap query(const std::shared_ptr<const ov::Model>& model, const Config& config) const = 0;
     virtual uint32_t get_version() const = 0;
     virtual std::vector<std::string> get_supported_options() const = 0;

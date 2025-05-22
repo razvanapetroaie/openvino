@@ -844,11 +844,8 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
     std::shared_ptr<ov::ICompiledModel> compiledModel;
 
     try {
-<<<<<<< HEAD
         uint64_t mainSize;
         std::vector<uint64_t> initSizes;
-=======
->>>>>>> d72b761
         const bool skipCompatibility = localConfig.get<DISABLE_VERSION_CHECK>();
         size_t blobSize = MetadataBase::getFileSize(stream);
         if (!skipCompatibility) {
@@ -856,7 +853,6 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
             if (!storedMeta->is_compatible()) {
                 OPENVINO_THROW("Incompatible blob version!");
             }
-<<<<<<< HEAD
 
             size_t accumulator = 0;
             initSizes = storedMeta->get_init_sizes();
@@ -866,34 +862,14 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
             mainSize = MetadataBase::getFileSize(stream);
         }
 
-        std::unique_ptr<BlobContainer> blobPtr;
-
-        if (modelBuffer == nullptr) {
-            std::vector<uint8_t> blob(mainSize);
-            stream.read(reinterpret_cast<char*>(blob.data()), mainSize);
-            if (!stream) {
-                OPENVINO_THROW("Failed to read data from stream!");
-            }
-            _logger.debug("Successfully read %zu bytes into blob.", mainSize);
-
-            blobPtr = std::make_unique<BlobContainerVector>(std::move(blob));
-        } else {
-            blobPtr = std::make_unique<BlobContainerAlignedBuffer>(modelBuffer, stream.tellg(), mainSize);
-            stream.seekg(mainSize, std::ios_base::cur);
-=======
-            blobSize = storedMeta->get_blob_size();
-        }
         if (tensorFromProperty == false) {  // tensor was not received from ov::compiled_blob property, copy from stream
-            tensor = ov::Tensor(ov::element::u8, ov::Shape{blobSize});
-            if (blobSize > static_cast<decltype(blobSize)>(std::numeric_limits<std::streamsize>::max())) {
-                OPENVINO_THROW("Blob size is too large to be represented on a std::streamsize!");
-            }
-            stream.read(tensor.data<char>(), static_cast<std::streamsize>(blobSize));
+            tensor = ov::Tensor(ov::element::u8, ov::Shape{mainSize});
+            stream.read(tensor.data<char>(), tensor.get_byte_size());
+            stream.seekg(mainSize, std::ios_base::cur);
         } else {
             tensor = ov::Tensor(tensor,
                                 ov::Coordinate{0},
-                                ov::Coordinate{blobSize});  // ROI tensor to skip NPU plugin metadata
->>>>>>> d72b761
+                                ov::Coordinate{mainSize});  // ROI tensor to skip NPU plugin metadata
         }
         auto graph = compiler->parse(std::move(tensor), !tensorFromProperty, localConfig);
         graph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
@@ -905,25 +881,23 @@ std::shared_ptr<ov::ICompiledModel> Plugin::import_model(std::istream& origStrea
         } else {
             // Read the init compiled models as well
             // TODO adjust for multiple init parts
+            size_t cursorPosition = mainSize;
             std::vector<std::shared_ptr<IGraph>> initGraphs;
             for (uint64_t initSize : initSizes) {
-                if (modelBuffer == nullptr) {
-                    std::vector<uint8_t> blob(initSize);
-                    stream.read(reinterpret_cast<char*>(blob.data()), initSize);
-                    if (!stream) {
-                        OPENVINO_THROW("Failed to read data from stream!");
-                    }
-                    _logger.debug("Successfully read %zu bytes into init blob.", initSize);
-
-                    blobPtr = std::make_unique<BlobContainerVector>(std::move(blob));
-                } else {
-                    blobPtr = std::make_unique<BlobContainerAlignedBuffer>(modelBuffer, stream.tellg(), initSize);
+                if (tensorFromProperty == false) {
+                    tensor = ov::Tensor(ov::element::u8, ov::Shape{initSize});
+                    stream.read(tensor.data<char>(), tensor.get_byte_size());
                     stream.seekg(initSize, std::ios_base::cur);
+                } else {
+                    tensor =
+                        ov::Tensor(tensor, ov::Coordinate{cursorPosition}, ov::Coordinate{cursorPosition + initSize});
                 }
 
-                std::shared_ptr<IGraph> initGraph = compiler->parse(std::move(blobPtr), localConfig);
+                std::shared_ptr<IGraph> initGraph =
+                    compiler->parse(std::move(tensor), !tensorFromProperty, localConfig);
                 initGraph->update_network_name("net" + std::to_string(_compiledModelLoadCounter++));
                 initGraphs.push_back(initGraph);
+                cursorPosition += initSize;
             }
 
             // Retrieve the ov::Model used for compilation. This is required for extracting and matching the weights
