@@ -386,19 +386,24 @@ WeightlessGraph::InputData WeightlessGraph::allocate_inputs(
         weightlessCacheAttributeMatch != runtimeInfoMap.end() && weightlessCacheAttributeMatch->second.as<bool>();
 
     size_t offset = 0;
+    std::set<std::string> string_set;
     for (const IODescriptor& descriptor : _initsMetadata.at(initIndex).inputs) {
         auto currentInputBufferLocation =
             static_cast<unsigned char*>(const_cast<void*>(initInputsAllocatedTensor->data(ov::element::Type_t::u8))) +
             offset;
         const size_t currentInputSize =
             ov::element::get_memory_size(descriptor.precision, shape_size(descriptor.shapeFromCompiler.to_shape()));
-
+        std::cout << descriptor.nameFromCompiler << std::endl;
+        if (string_set.count(descriptor.nameFromCompiler)) {
+            std::cout << "ALREADY THERE" << std::endl << std::endl;
+        }
+        string_set.emplace(descriptor.nameFromCompiler);
         size_t id;
         std::shared_ptr<ov::op::v0::Constant> constant;
         if (foundWeightlessCacheAttribute) {
             const size_t delimiterPosition = descriptor.nameFromCompiler.find(INIT_INPUT_DELIMITER);
             OPENVINO_ASSERT(delimiterPosition > 0, "Invalid name for init inpu ", descriptor.nameFromCompiler);
-            id = std::stoi(descriptor.nameFromCompiler.substr(0, delimiterPosition));
+            id = std::stoi(descriptor.nameFromCompiler);
             OPENVINO_ASSERT(constants.count(id) > 0,
                             "Weights ID ",
                             id,
