@@ -65,6 +65,7 @@ std::string ModelCache::compute_hash(const std::shared_ptr<const ov::Model>& mod
 
     // 2. Compute hash on serialized data and options
     for (const auto& [name, option] : compileOptions) {
+        std::cout << name + option.as<std::string>() << std::endl;
         seed = hash_combine(seed, name + option.as<std::string>());
     }
 
@@ -87,6 +88,7 @@ std::string ModelCache::compute_hash(const std::shared_ptr<const ov::Model>& mod
 std::string ModelCache::compute_hash(const std::string& modelName, const ov::AnyMap& compileOptions) {
     OV_ITT_SCOPE(FIRST_INFERENCE, ov::itt::domains::ReadTime, "ModelCache::compute_hash - Model");
     uint64_t seed = 0;
+    std::cout << "GOT HERE" << std::endl;
     try {
         seed = hash_combine(seed, ov::util::get_absolute_file_path(modelName));
     } catch (...) {
@@ -94,6 +96,7 @@ std::string ModelCache::compute_hash(const std::string& modelName, const ov::Any
         seed = hash_combine(seed, modelName);
     }
     for (const auto& kvp : compileOptions) {
+        std::cout << kvp.second.as<std::string>() << std::endl;
         seed = hash_combine(seed, kvp.first + kvp.second.as<std::string>());
     }
     return std::to_string(seed);

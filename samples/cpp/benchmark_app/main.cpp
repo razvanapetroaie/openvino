@@ -650,7 +650,14 @@ int main(int argc, char* argv[]) {
             slog::info << "Skipping the step for loading model from file" << slog::endl;
             auto compile_model_mem_start = get_peak_memory_usage();
             auto startTime = Time::now();
+            core.set_property(ov::cache_dir("/home/razvanapetroaie/cache"));
+            device_config.insert(ov::cache_mode(ov::CacheMode::OPTIMIZE_SPEED));
             compiledModel = core.compile_model(FLAGS_m, device_name, device_config);
+            device_config.insert(ov::cache_mode(ov::CacheMode::OPTIMIZE_SIZE));
+            std::cout << device_config.at(ov::cache_mode.name()).as<ov::CacheMode>() << std::endl;
+
+            compiledModel = core.compile_model(FLAGS_m, device_name, device_config);
+
             auto duration_ms = get_duration_ms_till_now(startTime);
             auto compile_model_mem_end = get_peak_memory_usage();
             slog::info << "Compile model took " << double_to_string(duration_ms) << " ms" << slog::endl;
@@ -840,6 +847,10 @@ int main(int argc, char* argv[]) {
             next_step();
             auto compile_model_mem_start = get_peak_memory_usage();
             startTime = Time::now();
+            core.set_property(ov::cache_dir("/home/razvanapetroaie/cache"));
+            device_config.insert({"CACHE_MODE", ov::CacheMode::OPTIMIZE_SIZE});
+            std::cout << device_config.at(ov::cache_mode.name()).as<ov::CacheMode>() << std::endl;
+            compiledModel = core.compile_model(model, device_name, device_config);
             compiledModel = core.compile_model(model, device_name, device_config);
             duration_ms = get_duration_ms_till_now(startTime);
             auto compile_model_mem_end = get_peak_memory_usage();
