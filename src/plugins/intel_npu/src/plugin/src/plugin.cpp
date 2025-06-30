@@ -134,6 +134,10 @@ static ov::intel_npu::CompilerType resolveCompilerType(const FilteredConfig base
     return base_conf.get<COMPILER_TYPE>();
 }
 
+/**
+ * @brief Just checks if there is any "WeightlessCacheAttribute" present in the model. This is a useful information down
+ * the line if using the "weights separation" flow.
+ */
 std::shared_ptr<ov::Model> store_weightless_cache_attribute_occurrence(const std::shared_ptr<const ov::Model>& model) {
     auto clonedModel = model->clone();
 
@@ -763,8 +767,7 @@ std::shared_ptr<IGraph> Plugin::parse(std::istream& stream,
         originalModel = store_weightless_cache_attribute_occurrence(originalModel);
 
         // If "WeightlessCacheAttribute" fields have not been added to the Constant nodes, then we have to fallback to
-        // the
-        // approach that relies on running the common OV passes inside the plugin as well
+        // the approach that relies on running the common OV passes inside the plugin as well
         const ov::RTMap& runtimeInfoMap = originalModel->get_rt_info();
         const auto& weightlessCacheAttributeMatch = runtimeInfoMap.find("any_weightless_cache_attribute_present");
         if (weightlessCacheAttributeMatch == runtimeInfoMap.end() ||
