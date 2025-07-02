@@ -149,9 +149,11 @@ std::shared_ptr<ov::Model> store_weightless_cache_attribute_occurrence(const std
         if (auto it = ov_node->get_rt_info().find(ov::WeightlessCacheAttribute::get_type_info_static());
             it != ov_node->get_rt_info().end()) {
             clonedModel->set_rt_info(true, "any_weightless_cache_attribute_present");
+            std::cout << "found" << std::endl;
             return clonedModel;
         }
     }
+    std::cout << "not found" << std::endl;
 
     clonedModel->set_rt_info(false, "any_weightless_cache_attribute_present");
     return clonedModel;
