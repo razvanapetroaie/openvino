@@ -102,7 +102,7 @@ constexpr uint32_t CURRENT_METADATA_VERSION{METADATA_VERSION_2_1};
 constexpr uint16_t CURRENT_METADATA_MAJOR_VERSION{MetadataBase::get_major(CURRENT_METADATA_VERSION)};
 constexpr uint16_t CURRENT_METADATA_MINOR_VERSION{MetadataBase::get_minor(CURRENT_METADATA_VERSION)};
 
-class OpenvinoVersion {
+class OpenvinoVersion final {
 public:
     constexpr OpenvinoVersion(uint16_t major, uint16_t minor, uint16_t patch)
         : _major(major),
@@ -110,6 +110,18 @@ public:
           _patch(patch) {}
 
     OpenvinoVersion(const OpenvinoVersion& version);
+
+    OpenvinoVersion& operator=(const OpenvinoVersion& other) {
+        if (this != &other) {
+            _major = other.get_major();
+            _minor = other.get_minor();
+            _patch = other.get_patch();
+        }
+
+        return *this;
+    }
+
+    ~OpenvinoVersion() = default;
 
     /**
      * @brief Reads version data from a stream.
