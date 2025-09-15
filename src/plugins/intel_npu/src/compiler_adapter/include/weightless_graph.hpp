@@ -94,6 +94,7 @@ private:
     void run_init_single_threaded();
 
     void run_init_multi_threaded();
+    void test_function();
 
     /**
      * @brief Sets the processed weights as inputs of the main schedule.
@@ -129,6 +130,10 @@ private:
      */
     mutable std::unordered_map<std::string, std::shared_ptr<ov::ITensor>> _mainInputsViewTensors;
     Logger _wgLogger;  // Uses the "WeightlessGraph" domain
+
+    std::vector<std::shared_ptr<ZeroHostTensor>> _test_tensors1;
+    std::vector<std::shared_ptr<ZeroHostTensor>> _test_tensors2;
+    std::vector<std::shared_ptr<ZeroHostTensor>> _test_tensors3;
 };
 
 }  // namespace intel_npu

@@ -16,7 +16,7 @@
 #include "openvino/core/model.hpp"
 #include "openvino/core/rt_info/weightless_caching_attributes.hpp"
 #include "openvino/runtime/make_tensor.hpp"
-
+#include "intel_npu/utils/zero/zero_utils.hpp"
 #define USE_SINGLE_THREADED_RUN_INIT 0
 
 namespace intel_npu {
@@ -360,6 +360,8 @@ void WeightlessGraph::initialize(const Config& config) {
         }
     }
 
+    test_function();
+
 #if USE_SINGLE_THREADED_RUN_INIT
     run_init_single_threaded();
 #else
@@ -467,6 +469,115 @@ WeightlessGraph::OutputData WeightlessGraph::allocate_outputs(const size_t initI
     return {initOutputsViewTensorsVector, initOutputsAllocatedTensor, initOutputsViewTensorsMap};
 }
 
+#include <chrono>
+#include <thread>
+#include<windows.h>
+#include<stdio.h>   
+#include<tchar.h>
+
+#define DIV 1048576
+
+#define WIDTH 7
+
+void get_status() {
+    MEMORYSTATUSEX statex;
+    statex.dwLength = sizeof (statex);
+    GlobalMemoryStatusEx (&statex);
+    _tprintf (TEXT("There is  %*ld percent of memory in use.\n"),WIDTH, statex.dwMemoryLoad);
+    _tprintf (TEXT("There are %*I64d total Mbytes of physical memory.\n"),WIDTH,statex.ullTotalPhys/DIV);
+    _tprintf (TEXT("There are %*I64d free Mbytes of physical memory.\n"),WIDTH, statex.ullAvailPhys/DIV);
+    _tprintf (TEXT("There are %*I64d total Mbytes of paging file.\n"),WIDTH, statex.ullTotalPageFile/DIV);
+    _tprintf (TEXT("There are %*I64d free Mbytes of paging file.\n"),WIDTH, statex.ullAvailPageFile/DIV);
+    _tprintf (TEXT("There are %*I64d total Mbytes of virtual memory.\n"),WIDTH, statex.ullTotalVirtual/DIV);
+    _tprintf (TEXT("There are %*I64d free Mbytes of virtual memory.\n"),WIDTH, statex.ullAvailVirtual/DIV);
+    _tprintf (TEXT("There are %*I64d free Mbytes of extended memory.\n"),WIDTH, statex.ullAvailExtendedVirtual/DIV);
+}
+
+void WeightlessGraph::test_function() {
+    std::cout << "TEST FUCTION START" << std::endl;
+    get_status();
+    const ov::Shape TEST_SHAPE({100, 100, 100});
+
+    std::mutex test_mutex1;
+    std::mutex test_mutex2;
+
+    std::thread thread1([&]() {
+        for (auto i = 0; i < 1000; ++i) {
+            const auto tensor = std::make_shared<ZeroHostTensor>(nullptr,
+                                        _zeroInitStruct,
+                                        ov::element::Type_t::u8,
+                                        TEST_SHAPE,
+                                        ov::intel_npu::TensorType::BINDED);
+            std::lock_guard guard(test_mutex1);
+            _test_tensors1.push_back(tensor);
+        }
+    });
+    std::thread thread2([&]() {
+        for (auto i = 0; i < 1000; ++i) {
+            const auto tensor = std::make_shared<ZeroHostTensor>(nullptr,
+                                        _zeroInitStruct,
+                                        ov::element::Type_t::u8,
+                                        TEST_SHAPE,
+                                        ov::intel_npu::TensorType::BINDED);
+            test_mutex2.lock();
+            _test_tensors2.push_back(tensor);
+            test_mutex2.unlock();
+        }
+    });
+    std::thread thread3([&]() {
+        for (auto i = 0; i < 1000; ++i) {
+            const auto tensor = std::make_shared<ZeroHostTensor>(nullptr,
+                                        _zeroInitStruct,
+                                        ov::element::Type_t::u8,
+                                        TEST_SHAPE,
+                                        ov::intel_npu::TensorType::BINDED);
+            
+            _test_tensors3.push_back(tensor);
+
+            if (_test_tensors1.size() > 100) {
+                std::lock_guard guard(test_mutex1);
+                _test_tensors1.pop_back();
+            }
+            if (_test_tensors2.size() > 100) {
+                std::lock_guard guard(test_mutex2);
+                _test_tensors2.pop_back();
+            }
+        }
+    });
+
+    thread1.join();
+    thread2.join();
+    thread3.join();
+
+    for (auto i = 0; i < _test_tensors1.size(); ++i) {
+        if (!zeroUtils::memory_was_allocated_in_the_same_l0_context(_zeroInitStruct->getContext(), _test_tensors1.at(i)->data())) {
+            OPENVINO_THROW("PROBLEM");
+        }
+    }
+    for (auto i = 0; i < _test_tensors2.size(); ++i) {
+        if (!zeroUtils::memory_was_allocated_in_the_same_l0_context(_zeroInitStruct->getContext(), _test_tensors2.at(i)->data())) {
+            OPENVINO_THROW("PROBLEM");
+        }
+    }
+    for (auto i = 0; i < _test_tensors3.size(); ++i) {
+        if (!zeroUtils::memory_was_allocated_in_the_same_l0_context(_zeroInitStruct->getContext(), _test_tensors3.at(i)->data())) {
+            OPENVINO_THROW("PROBLEM");
+        }
+    }
+    std::cout << "SLEEP START" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::cout << "SLEEP END" << std::endl;
+
+    for (auto i = 0; i < _test_tensors3.size(); ++i) {
+        if (!zeroUtils::memory_was_allocated_in_the_same_l0_context(_zeroInitStruct->getContext(), _test_tensors3.at(i)->data())) {
+            OPENVINO_THROW("PROBLEM");
+        }
+    }
+    get_status();
+
+    std::cout << "TEST FUCTION END" << std::endl;
+}
+
 void WeightlessGraph::run_init_single_threaded() {
     auto constants = get_all_constants_in_topological_order(_model, _wgLogger);
 
@@ -474,8 +585,6 @@ void WeightlessGraph::run_init_single_threaded() {
         auto [initInputsViewTensors, initInputsAllocatedTensor] = allocate_inputs(initIndex, constants);
 
         // We don't need these anymore, potentially save some memory
-        _model = nullptr;
-        constants = {};
         auto [initOutputsViewTensors, initOutputsAllocatedTensor, initOutputsViewTensorsMap] =
             allocate_outputs(initIndex);
 
@@ -509,6 +618,7 @@ void WeightlessGraph::run_init_multi_threaded() {
             data.initIndex = initIndex;
             data.inputs = allocate_inputs(initIndex, constants);
             data.outputs = allocate_outputs(initIndex);
+            
             return data;
         },
         [&](QueueData&& data, std::condition_variable& cv, std::atomic_bool& flag) {
@@ -524,10 +634,13 @@ void WeightlessGraph::run_init_multi_threaded() {
             flag.store(true);
             cv.notify_one();
 
+        std::cout << "CHECK " << data.outputs.hostTensor->data() << " " << zeroUtils::memory_was_allocated_in_the_same_l0_context(_zeroInitStruct->getContext(), data.outputs.hostTensor->data()) << std::endl;
             run_pipeline(data.initIndex);
+        std::cout << "CHECK " << data.outputs.hostTensor->data() << " " << zeroUtils::memory_was_allocated_in_the_same_l0_context(_zeroInitStruct->getContext(), data.outputs.hostTensor->data()) << std::endl;
 
             // TODO: pre-allocate those well in advance? (outside of this loop)
             merge_two_maps(_mainInputsViewTensors, data.outputs.tensorsMap);
+            std::cout << "ADDING " << data.outputs.hostTensor->data() << std::endl;
             _mainInputsAllocatedTensors.push_back(data.outputs.hostTensor);
         },
         _wgLogger);
@@ -585,6 +698,7 @@ void WeightlessGraph::set_weights_inputs() {
         if (!isMainInputWeightsName(desc.info.name)) {
             continue;
         }
+        std::cout << desc.idx << std::endl;
 
         const std::string weightsInputName = std::string(desc.info.name).substr(MAIN_INPUT_WEIGHTS_PREFIX.size());
         OPENVINO_ASSERT(_mainInputsViewTensors.count(weightsInputName),
@@ -592,7 +706,12 @@ void WeightlessGraph::set_weights_inputs() {
                         weightsInputName,
                         "\" has no correspondent within the init outputs.");
         std::shared_ptr<ov::ITensor> weightsTensor = _mainInputsViewTensors.at(weightsInputName);
+        std::cout << "BEFORE" << std::endl;
+        if (!zeroUtils::memory_was_allocated_in_the_same_l0_context(_zeroInitStruct->getContext(), weightsTensor->data())) {
+        std::cout << "TROUBLE " << weightsTensor->data() << std::endl;
+        }
         set_argument_value(desc.idx, static_cast<unsigned char*>(weightsTensor->data()));
+        std::cout << "AFTER" << std::endl;
     }
 }
 

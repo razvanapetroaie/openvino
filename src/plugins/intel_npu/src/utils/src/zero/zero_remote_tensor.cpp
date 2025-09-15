@@ -140,6 +140,7 @@ ZeroRemoteTensor::~ZeroRemoteTensor() {
 }
 
 bool ZeroRemoteTensor::deallocate() noexcept {
+    // std::cout << "DEALLOCATING " << _data << std::endl;
     switch (_mem_type) {
     case MemType::L0_INTERNAL_BUF:
     case MemType::SHARED_BUF:
@@ -313,6 +314,7 @@ void ZeroRemoteTensor::allocate(const size_t bytes) {
 
     update_properties();
     update_strides();
+    // std::cout << "ALLOCATED " << _data << std::endl;
 }
 
 bool ZeroRemoteTensor::is_allocated() const noexcept {
