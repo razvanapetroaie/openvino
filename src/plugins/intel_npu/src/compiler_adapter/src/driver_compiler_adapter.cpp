@@ -58,45 +58,15 @@ void storeWeightlessCacheAttribute(const std::shared_ptr<ov::Model>& model) {
     }
 }
 
-int parseLine(char* line) {
-    // This assumes that a digit will be found and the line ends in " Kb".
-    int i = strlen(line);
-    const char* p = line;
-    while (*p < '0' || *p > '9')
-        p++;
-    line[i - 3] = '\0';
-    i = atoi(p);
-    return i;
-}
+// clang-format off
+#include "windows.h"
+#include "psapi.h"
+// clang-format on
 
-int getVMValue() {  // Note: this value is in KB!
-    FILE* file = fopen("/proc/self/status", "r");
-    int result = -1;
-    char line[128];
-
-    while (fgets(line, 128, file) != NULL) {
-        if (strncmp(line, "VmSize:", 7) == 0) {
-            result = parseLine(line);
-            break;
-        }
-    }
-    fclose(file);
-    return result;
-}
-
-int getPMValue() {  // Note: this value is in KB!
-    FILE* file = fopen("/proc/self/status", "r");
-    int result = -1;
-    char line[128];
-
-    while (fgets(line, 128, file) != NULL) {
-        if (strncmp(line, "VmRSS:", 6) == 0) {
-            result = parseLine(line);
-            break;
-        }
-    }
-    fclose(file);
-    return result;
+void printMemoryValue() {  // Note: this value is in KB!
+    PROCESS_MEMORY_COUNTERS_EX pmc;
+    GetProcessMemoryInfo(GetCurrentProcess(), (PROCESS_MEMORY_COUNTERS*)&pmc, sizeof(pmc));
+    std::cout << "VM: " << pmc.PrivateUsage / 1024 << " PM: " << pmc.WorkingSetSize / 1024 << "KB" << std::endl;
 }
 
 }  // namespace
@@ -130,7 +100,8 @@ std::shared_ptr<IGraph> DriverCompilerAdapter::compile(const std::shared_ptr<con
     _logger.info("getSupportedOpsetVersion Max supported version of opset in CiD: %d", maxOpsetVersion);
 
     _logger.debug("serialize IR");
-    std::cout << "Before serialization VM " << getVMValue() << "PM " << getPMValue() << "KB" << std::endl;
+    std::cout << "Before serialization" << std::endl;
+    printMemoryValue();
     std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
     auto serializedIR = driver_compiler_utils::serializeIR(
         model,
@@ -141,8 +112,8 @@ std::shared_ptr<IGraph> DriverCompilerAdapter::compile(const std::shared_ptr<con
     std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     std::cout << "Time to serialize: " << std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()
               << "[µs]" << std::endl;
-    std::cout << "After serialization VM " << getVMValue() << "PM " << getPMValue() << "KB" << std::endl;
-
+    std::cout << "After serialization" << std::endl;
+    printMemoryValue();
     std::string buildFlags;
     const bool useIndices = !((compilerVersion.major < 5) || (compilerVersion.major == 5 && compilerVersion.minor < 9));
 
