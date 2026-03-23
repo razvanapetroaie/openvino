@@ -37,7 +37,7 @@ static IODescriptor getIODescriptor(const uint32_t indexUsedByDriver,
     std::unordered_set<std::string> outputTensorNames;
 
     for (uint32_t id = 0; id < arg.associated_tensor_names_count; id++) {
-        outputTensorNames.insert(arg.associated_tensor_names[id]);
+        outputTensorNames.insert("dummy");
     }
     for (uint32_t id = 0; id < arg.dims_count; id++) {
         shapeFromCompiler.push_back(arg.dims[id]);

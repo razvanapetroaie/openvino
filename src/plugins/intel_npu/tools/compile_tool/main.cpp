@@ -518,7 +518,14 @@ int main(int argc, char* argv[]) {
         } else {
             std::cout << "Writing into file - " << outputName << std::endl;
             compiledModel.export_model(outputFile);
+            outputFile.close();
         }
+        std::ifstream inputFile{outputName, std::ios_base::binary | std::ios_base::in};
+        compiledModel = core.import_model(inputFile, FLAGS_d, {configs.begin(), configs.end()});
+        auto infer_req = compiledModel.create_infer_request();
+        infer_req.set_tensor(model->inputs().at(0), ov::Tensor(ov::element::Type_t::u8, ov::Shape({1, 3, 224, 224})));
+        infer_req.set_tensor(model->inputs().at(0).get_any_name(),
+                             ov::Tensor(ov::element::Type_t::u8, ov::Shape({1, 3, 224, 224})));
         std::cout << "Done. LoadNetwork time elapsed: " << loadNetworkTimeElapsed.count() << " ms" << std::endl;
     } catch (const std::exception& error) {
         std::cerr << error.what() << std::endl;
