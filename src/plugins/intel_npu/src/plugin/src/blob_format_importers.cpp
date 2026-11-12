@@ -395,7 +395,6 @@ private:
         utils::decrypt_payload(m_compiler_payload, m_config.get<CACHE_ENCRYPTION_CALLBACKS>().decrypt, m_logger);
     }
 
-    // TODO check blob ownership management
     ov::Tensor extract_main_schedule() const override {
         const uint64_t main_size = m_metadata->get_main_schedule_size();
 

@@ -91,7 +91,6 @@ void ELFMainScheduleSection::set_graph(const std::shared_ptr<IGraph>& graph) {
     m_graph_or_schedule = graph;
 }
 
-// TODO remember to call this after parsing. Maybe a test could be useful for this
 void ELFMainScheduleSection::set_encryption_callback(
     const std::function<std::string(const std::string&)> encryption_callback) {
     m_encryption_callback = encryption_callback;
@@ -121,7 +120,6 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> ELFMainScheduleSecti
                     "Logic error: the decoder received a section of the wrong type");
     OPENVINO_ASSERT(section.tag().is_pointer(), "Logic error: the payload is inline");
 
-    // TODO double check no "size_t" used for r/w sizes
     const size_t main_schedule_size = section.size();
     std::shared_ptr<ELFMainScheduleSection> result;
     const ov::util::MemoryView content_view = section.view();

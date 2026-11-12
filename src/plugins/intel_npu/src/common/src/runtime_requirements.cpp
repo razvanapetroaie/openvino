@@ -184,7 +184,7 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> RuntimeRequirementsS
         logger.debug("Parsing the CRE");
 
         try {
-            cre = CRE::from_string(parsed_content.at(CRE_KEY.data()), logger.level());
+            cre = CRE::from_string(parsed_content.at(CRE_KEY.data()));
         } catch (const std::exception& ex) {
             logger.warning("Failed to parse the CRE. Exception: %s", ex.what());
             return std::nullopt;

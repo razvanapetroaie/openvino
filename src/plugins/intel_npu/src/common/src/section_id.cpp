@@ -13,7 +13,6 @@ namespace intel_npu {
 
 SectionID::SectionID(const uint16_t section_id) : CREToken(), m_value(section_id) {}
 
-// TODO consider renaming
 uint16_t SectionID::get_value() const {
     return m_value;
 }

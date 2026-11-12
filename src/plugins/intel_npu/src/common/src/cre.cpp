@@ -327,8 +327,7 @@ bool is_cre_special_token(const std::shared_ptr<CREToken>& candidate) {
 
 CRE::CRE() : m_logger("CRE", Logger::global().level()) {}
 
-CRE::CRE(const std::vector<std::shared_ptr<CREToken>>& subexpression, const ov::log::Level log_level)
-    : m_logger("CRE", Logger::global().level()) {
+CRE::CRE(const std::vector<std::shared_ptr<CREToken>>& subexpression) : m_logger("CRE", Logger::global().level()) {
     if (!subexpression.empty()) {
         CRE_ASSERT(is_expression_valid(subexpression), "Received an invalid subexpression");
         m_subexpressions.push_back(subexpression);

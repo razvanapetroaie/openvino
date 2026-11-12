@@ -61,7 +61,6 @@ std::shared_ptr<ISection> BlobSectionsRegistry::retrieve_section(const SectionID
 }
 
 std::shared_ptr<ISection> BlobSectionsRegistry::retrieve_unique_section_of_type(const SectionType section_type) const {
-    // TODO test this
     switch (count_sections_of_type(section_type)) {
     case 0: {
         return nullptr;
@@ -109,7 +108,7 @@ std::unordered_map<SectionType, size_t> BlobSectionsRegistry::get_content_summar
 std::shared_ptr<ISection> BlobSectionsRegistry::build_runtime_requirements_section() const {
     m_logger.debug("Building the runtime requirements");
     std::map<SectionID, std::string> sections_requirements;
-    CRE cre(m_logger.level());
+    CRE cre;
     std::unordered_map<SectionID, SectionType> section_id_to_type;
 
     // Each section can register a compatibility substring, as well as a compatiblity subexpression (between sections)

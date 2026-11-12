@@ -131,7 +131,6 @@ public:
 
     void set_encryption_callback(const std::function<std::string(const std::string&)> encryption_callback);
 
-    // TODO consider moving the tensor to free the schedule earlier
     ov::Tensor get_schedule() const;
 
     static ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> decode;
