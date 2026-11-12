@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include "cre.hpp"
+#include "../cre.hpp"
+#include "../isection_instance_evaluator.hpp"
+#include "../isection_type_evaluator.hpp"
+#include "../single_section_instance_evaluator.hpp"
 #include "intel_npu/common/isection.hpp"
-#include "isection_instance_evaluator.hpp"
-#include "isection_type_evaluator.hpp"
-#include "single_section_instance_evaluator.hpp"
 
 namespace intel_npu {
 

@@ -5,7 +5,7 @@
 #include <gtest/gtest.h>
 
 #include "common_test_utils/test_assertions.hpp"
-#include "compiler_schedules_sections.hpp"
+#include "hsm_sections/compiler_schedules.hpp"
 #include "intel_npu/common/blob_sections_registry.hpp"
 #include "intel_npu/common/section_type.hpp"
 #include "intel_npu/utils/utils.hpp"

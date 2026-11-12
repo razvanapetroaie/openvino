@@ -7,11 +7,11 @@
 #include <memory>
 #include <string>
 
-#include "compiler_schedules_sections.hpp"
 #include "dynamic_graph.hpp"
 #include "graph.hpp"
+#include "hsm_sections/compiler_schedules.hpp"
 #include "intel_npu/common/device_helpers.hpp"
-#include "intel_npu/common/encrypted_schedules_flag_section.hpp"
+#include "intel_npu/common/hsm_sections/encrypted_schedules_flag.hpp"
 #include "intel_npu/common/itt.hpp"
 #include "intel_npu/config/options.hpp"
 #include "intel_npu/npu_private_properties.hpp"

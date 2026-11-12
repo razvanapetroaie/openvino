@@ -5,16 +5,16 @@
 set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/async_infer_request.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/backends_registry.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/batch_size_section.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/hsm_sections/batch_size.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/blob_format_importers.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/compiler_option_support_helper.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/compiler_schedule_instance_evaluator.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/compiler_version_section.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/hsm_sections/compiler_version.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/compiled_model.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/compiled_model_property_manager.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/executor.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/hsm_read_write.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/io_layouts_section.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/hsm_sections/io_layouts.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/metadata.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/plugin.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/plugin_property_manager.hpp

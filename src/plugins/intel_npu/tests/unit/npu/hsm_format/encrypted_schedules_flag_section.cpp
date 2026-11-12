@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "intel_npu/common/encrypted_schedules_flag_section.hpp"
-
 #include <gtest/gtest.h>
 
 #include "common_test_utils/test_assertions.hpp"
+#include "intel_npu/common/hsm_sections/encrypted_schedules_flag.hpp"
 #include "intel_npu/common/section_type.hpp"
 #include "openvino/runtime/hsm_deferred_writer.hpp"
 #include "openvino/runtime/hsm_reader.hpp"

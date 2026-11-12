@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "io_layouts_section.hpp"
-
+#include "hsm_sections/io_layouts.hpp"
 #include "intel_npu/common/itt.hpp"
 
 namespace {

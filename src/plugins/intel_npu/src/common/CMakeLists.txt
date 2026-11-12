@@ -12,7 +12,7 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/cre.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/option_support_cache.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/device_helpers.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/encrypted_schedules_flag_section.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/hsm_sections/encrypted_schedules_flag.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/icompiled_model.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/icompiler_adapter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/igraph.hpp
@@ -24,7 +24,7 @@ set(SOURCES
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/network_metadata.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/npu.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/parser_factory.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/runtime_requirements.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/hsm_sections/runtime_requirements.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/section_id.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/section_type.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/intel_npu/common/single_section_instance_evaluator.hpp

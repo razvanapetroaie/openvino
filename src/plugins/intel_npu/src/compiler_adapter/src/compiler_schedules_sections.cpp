@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-#include "compiler_schedules_sections.hpp"
-
+#include "hsm_sections/compiler_schedules.hpp"
 #include "intel_npu/common/itt.hpp"
 #include "intel_npu/config/options.hpp"
 #include "intel_npu/utils/tensor_decryption.hpp"

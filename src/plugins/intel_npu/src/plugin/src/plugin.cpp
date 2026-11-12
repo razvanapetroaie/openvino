@@ -7,12 +7,13 @@
 #include <fstream>
 #include <numeric>
 
-#include "batch_size_section.hpp"
 #include "blob_format_importers.hpp"
 #include "compiled_model.hpp"
-#include "compiler_schedules_sections.hpp"
-#include "compiler_version_section.hpp"
 #include "driver_compiler_adapter.hpp"
+#include "hsm_sections/batch_size.hpp"
+#include "hsm_sections/compiler_schedules.hpp"
+#include "hsm_sections/compiler_version.hpp"
+#include "hsm_sections/io_layouts.hpp"
 #include "intel_npu/common/compiler_adapter_factory.hpp"
 #include "intel_npu/common/device_helpers.hpp"
 #include "intel_npu/common/icompiler_adapter.hpp"
@@ -21,7 +22,6 @@
 #include "intel_npu/config/npuw.hpp"
 #include "intel_npu/config/options.hpp"
 #include "intel_npu/utils/utils.hpp"
-#include "io_layouts_section.hpp"
 #include "npuw/compiled_model.hpp"
 #include "npuw/gqa_compiled_model.hpp"
 #include "openvino/core/rt_info/weightless_caching_attributes.hpp"

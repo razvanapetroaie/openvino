@@ -10,9 +10,9 @@
 #include <utility>
 #include <vector>
 
-#include "compiler_schedules_sections.hpp"
 #include "graph.hpp"
-#include "intel_npu/common/encrypted_schedules_flag_section.hpp"
+#include "hsm_sections/compiler_schedules.hpp"
+#include "intel_npu/common/hsm_sections/encrypted_schedules_flag.hpp"
 #include "intel_npu/common/itt.hpp"
 #include "intel_npu/common/option_support_cache.hpp"
 #include "intel_npu/config/config.hpp"
@@ -141,11 +141,11 @@ std::shared_ptr<IGraph> DriverCompilerAdapter::compile(const std::shared_ptr<con
     networkMeta.name = model->get_friendly_name();
 
     return std::make_shared<Graph>(_zeGraphExt,
-                                         _zeroInitStruct,
-                                         graphDesc,
-                                         std::move(networkMeta),
-                                         /* blob = */ std::nullopt,
-                                         get_compatibility_descriptor(graphDesc._handle));
+                                   _zeroInitStruct,
+                                   graphDesc,
+                                   std::move(networkMeta),
+                                   /* blob = */ std::nullopt,
+                                   get_compatibility_descriptor(graphDesc._handle));
 }
 
 std::shared_ptr<IGraph> DriverCompilerAdapter::compileWS(std::shared_ptr<ov::Model>&& model,

@@ -18,7 +18,7 @@
 
 // #include "common/functions.hpp"
 // #include "common/npu_test_env_cfg.hpp"
-// #include "compiler_schedules_sections.hpp"
+// #include "hsm_sections/compiler_schedules.hpp"
 // #include "intel_npu/common/blob_reader.hpp"
 // #include "intel_npu/common/cre.hpp"
 // #include "intel_npu/common/supported_section_type_evaluator.hpp"

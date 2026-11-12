@@ -10,8 +10,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "intel_npu/common/hsm_sections/runtime_requirements.hpp"
 #include "intel_npu/common/isection.hpp"
-#include "intel_npu/common/runtime_requirements.hpp"
 #include "intel_npu/utils/logger/logger.hpp"
 
 namespace intel_npu {

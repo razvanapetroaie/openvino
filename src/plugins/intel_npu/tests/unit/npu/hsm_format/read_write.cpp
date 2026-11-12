@@ -4,11 +4,11 @@
 
 #include <gtest/gtest.h>
 
-#include "batch_size_section.hpp"
 #include "common_test_utils/test_assertions.hpp"
-#include "compiler_version_section.hpp"
 #include "hsm_read_write.hpp"
-#include "intel_npu/common/runtime_requirements.hpp"
+#include "hsm_sections/batch_size.hpp"
+#include "hsm_sections/compiler_version.hpp"
+#include "intel_npu/common/hsm_sections/runtime_requirements.hpp"
 #include "openvino/runtime/hsm_deferred_writer.hpp"
 #include "openvino/runtime/hsm_reader.hpp"
 #include "utils.hpp"
