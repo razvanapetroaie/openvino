@@ -47,9 +47,9 @@ public:
 
     static ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> decode;
 
-    std::optional<std::string> get_individual_compatibility_requirements() const override;
+    std::optional<std::string> get_individual_runtime_requirements() const override;
 
-    std::vector<std::shared_ptr<CREToken>> get_compatibility_requirements_subexpression(
+    std::vector<std::shared_ptr<CREToken>> get_cre_tokens(
         const std::unordered_map<SectionID, std::shared_ptr<ISection>>& all_registered_sections) const override;
 
 private:

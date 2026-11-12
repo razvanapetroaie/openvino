@@ -32,8 +32,7 @@ TEST_F(BatchSizeSectionTest, CtorSetsTheRightValue) {
 }
 
 TEST_F(BatchSizeSectionTest, CompatibilityReqsSubexpression) {
-    const std::vector<std::shared_ptr<CREToken>> requirements =
-        section->get_compatibility_requirements_subexpression({});
+    const std::vector<std::shared_ptr<CREToken>> requirements = section->get_cre_tokens({});
     ASSERT_EQ(requirements.size(), 1);
     ASSERT_TRUE(is_section_type(requirements.at(0)));
     ASSERT_EQ(*std::dynamic_pointer_cast<SectionType>(requirements.at(0)).get(),
@@ -51,7 +50,7 @@ TEST_F(BatchSizeSectionTest, IsInline) {
 }
 
 TEST_F(BatchSizeSectionTest, NullIndividualReqs) {
-    ASSERT_FALSE(section->get_individual_compatibility_requirements().has_value());
+    ASSERT_FALSE(section->get_individual_runtime_requirements().has_value());
 }
 
 TEST_F(BatchSizeSectionTest, Write) {

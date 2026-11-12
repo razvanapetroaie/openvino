@@ -25,7 +25,7 @@ public:
     ELFMainScheduleSection(ov::Tensor&& main_schedule,
                            const std::function<std::string(const std::string&)>& encryption_callback = nullptr);
 
-    std::vector<std::shared_ptr<CREToken>> get_compatibility_requirements_subexpression(
+    std::vector<std::shared_ptr<CREToken>> get_cre_tokens(
         const std::unordered_map<SectionID, std::shared_ptr<ISection>>& all_registered_sections) const override;
 
     /**
@@ -46,7 +46,7 @@ public:
 
     void decrypt(const std::function<std::string(const std::string&)>& decryption_callback);
 
-    std::optional<std::string> get_individual_compatibility_requirements() const override;
+    std::optional<std::string> get_individual_runtime_requirements() const override;
 
 private:
     /**
@@ -74,7 +74,7 @@ public:
     ELFInitSchedulesSection(std::vector<ov::Tensor>&& init_schedules,
                             const std::function<std::string(const std::string&)>& encryption_callback = nullptr);
 
-    std::vector<std::shared_ptr<CREToken>> get_compatibility_requirements_subexpression(
+    std::vector<std::shared_ptr<CREToken>> get_cre_tokens(
         const std::unordered_map<SectionID, std::shared_ptr<ISection>>& all_registered_sections) const override;
 
     /**
@@ -119,7 +119,7 @@ public:
     DynamicScheduleSection(ov::Tensor&& main_schedule,
                            const std::function<std::string(const std::string&)>& encryption_callback = nullptr);
 
-    std::vector<std::shared_ptr<CREToken>> get_compatibility_requirements_subexpression(
+    std::vector<std::shared_ptr<CREToken>> get_cre_tokens(
         const std::unordered_map<SectionID, std::shared_ptr<ISection>>& all_registered_sections) const override;
 
     /**
@@ -138,7 +138,7 @@ public:
 
     void decrypt(const std::function<std::string(const std::string&)>& decryption_callback);
 
-    std::optional<std::string> get_individual_compatibility_requirements() const override;
+    std::optional<std::string> get_individual_runtime_requirements() const override;
 
 private:
     /**

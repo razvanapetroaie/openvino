@@ -49,7 +49,7 @@ ELFMainScheduleSection::ELFMainScheduleSection(
       m_encryption_callback(encryption_callback),
       m_logger("ELFMainScheduleSection", Logger::global().level()) {}
 
-std::vector<std::shared_ptr<CREToken>> ELFMainScheduleSection::get_compatibility_requirements_subexpression(
+std::vector<std::shared_ptr<CREToken>> ELFMainScheduleSection::get_cre_tokens(
     const std::unordered_map<SectionID, std::shared_ptr<ISection>>&
     /*all_registered_sections*/) const {
     OPENVINO_ASSERT(get_id().has_value());
@@ -141,7 +141,7 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> ELFMainScheduleSecti
     return result;
 };
 
-std::optional<std::string> ELFMainScheduleSection::get_individual_compatibility_requirements() const {
+std::optional<std::string> ELFMainScheduleSection::get_individual_runtime_requirements() const {
     const auto* graph = std::get_if<std::shared_ptr<IGraph>>(&m_graph_or_schedule);
     OPENVINO_ASSERT(graph, INVALID_STATE_MESSAGE);
     std::optional<std::string_view> requirements = (*graph)->get_compatibility_descriptor();
@@ -168,7 +168,7 @@ ELFInitSchedulesSection::ELFInitSchedulesSection(
       m_encryption_callback(encryption_callback),
       m_logger("ELFInitSchedulesSection", Logger::global().level()) {}
 
-std::vector<std::shared_ptr<CREToken>> ELFInitSchedulesSection::get_compatibility_requirements_subexpression(
+std::vector<std::shared_ptr<CREToken>> ELFInitSchedulesSection::get_cre_tokens(
     const std::unordered_map<SectionID, std::shared_ptr<ISection>>&
     /*all_registered_sections*/) const {
     OPENVINO_ASSERT(get_id().has_value());
@@ -295,7 +295,6 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> ELFInitSchedulesSect
         logger.debug("Init schedule parsed size: %lu", value);
     }
 
-    // TODO check the checks and their tests
     if (total_init_sizes != section.size() - sizeof(number_of_inits) - number_of_inits * SIZE_OF_INIT_SCHEDULE_SIZE) {
         logger.error("The sum of the parsed init schedule sizes does not correspond to the current section size");
         return std::nullopt;
@@ -338,7 +337,7 @@ DynamicScheduleSection::DynamicScheduleSection(
       m_impl(std::move(main_schedule), encryption_callback),
       m_logger("DynamicScheduleSection", Logger::global().level()) {}
 
-std::vector<std::shared_ptr<CREToken>> DynamicScheduleSection::get_compatibility_requirements_subexpression(
+std::vector<std::shared_ptr<CREToken>> DynamicScheduleSection::get_cre_tokens(
     const std::unordered_map<SectionID, std::shared_ptr<ISection>>&
     /*all_registered_sections*/) const {
     OPENVINO_ASSERT(get_id().has_value());
@@ -386,9 +385,8 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> DynamicScheduleSecti
         nullptr);
 };
 
-std::optional<std::string> DynamicScheduleSection::get_individual_compatibility_requirements() const {
-    // TODO is this correct?
-    return m_impl.get_individual_compatibility_requirements();
+std::optional<std::string> DynamicScheduleSection::get_individual_runtime_requirements() const {
+    return m_impl.get_individual_runtime_requirements();
 }
 
 }  // namespace intel_npu

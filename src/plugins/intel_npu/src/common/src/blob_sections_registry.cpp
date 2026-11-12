@@ -28,7 +28,6 @@ SectionID BlobSectionsRegistry::register_section(const std::shared_ptr<ISection>
                     "The runtime requirements section should not be added to the registry since its content is "
                     "volatile and depends on all other registered sections");
 
-    // TODO overflow checks
     const SectionID section_id = parsed_id.has_value() ? parsed_id.value() : SectionID(m_next_section_id++);
     OPENVINO_ASSERT(!m_ids_to_sections.count(section_id),
                     "The same section ID has been attributed to two distinct sections");
@@ -116,12 +115,12 @@ std::shared_ptr<ISection> BlobSectionsRegistry::build_runtime_requirements_secti
 
     // Each section can register a compatibility substring, as well as a compatiblity subexpression (between sections)
     for (const auto& [section_id, section] : m_ids_to_sections) {
-        const std::optional<std::string> individual_requirements = section->get_individual_compatibility_requirements();
+        const std::optional<std::string> individual_requirements = section->get_individual_runtime_requirements();
         if (individual_requirements.has_value()) {
             sections_requirements.emplace(section_id, individual_requirements.value());
         }
 
-        cre.append_to_expression(section->get_compatibility_requirements_subexpression(m_ids_to_sections));
+        cre.append_to_expression(section->get_cre_tokens(m_ids_to_sections));
         section_id_to_type.emplace(section_id, section->get_type());
     }
 

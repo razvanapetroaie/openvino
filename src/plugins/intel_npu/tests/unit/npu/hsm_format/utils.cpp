@@ -60,11 +60,11 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> MockSection::decode 
     return std::make_shared<MockSection>(std::vector<std::shared_ptr<CREToken>>(), std::nullopt);
 };
 
-std::optional<std::string> MockSection::get_individual_compatibility_requirements() const {
+std::optional<std::string> MockSection::get_individual_runtime_requirements() const {
     return m_individual_requirements;
 }
 
-std::vector<std::shared_ptr<CREToken>> MockSection::get_compatibility_requirements_subexpression(
+std::vector<std::shared_ptr<CREToken>> MockSection::get_cre_tokens(
     const std::unordered_map<SectionID, std::shared_ptr<ISection>>& all_registered_sections) const {
     return m_cre_tokens;
 }

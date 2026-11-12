@@ -15,7 +15,7 @@ EncryptedSchedulesFlagSection::EncryptedSchedulesFlagSection(const bool applied_
     m_logger.trace("Section created");
 }
 
-std::vector<std::shared_ptr<CREToken>> EncryptedSchedulesFlagSection::get_compatibility_requirements_subexpression(
+std::vector<std::shared_ptr<CREToken>> EncryptedSchedulesFlagSection::get_cre_tokens(
     const std::unordered_map<SectionID, std::shared_ptr<ISection>>&
     /*all_registered_sections*/) const {
     // Blob decryption should be supported by the importer when the blob is encrypted

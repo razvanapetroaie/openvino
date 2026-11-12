@@ -32,13 +32,12 @@ TEST_F(CompilerVersionSectionTest, CtorSetsTheRightValue) {
 }
 
 TEST_F(CompilerVersionSectionTest, EmptyCompatibilityReqsSubexpression) {
-    const std::vector<std::shared_ptr<CREToken>> requirements =
-        section->get_compatibility_requirements_subexpression({});
+    const std::vector<std::shared_ptr<CREToken>> requirements = section->get_cre_tokens({});
     ASSERT_TRUE(requirements.empty());
 }
 
 TEST_F(CompilerVersionSectionTest, NullIndividualReqs) {
-    ASSERT_FALSE(section->get_individual_compatibility_requirements().has_value());
+    ASSERT_FALSE(section->get_individual_runtime_requirements().has_value());
 }
 
 TEST_F(CompilerVersionSectionTest, Alignment) {

@@ -18,7 +18,7 @@ class EncryptedSchedulesFlagSection final : public ISection {
 public:
     EncryptedSchedulesFlagSection(const bool applied_encryption);
 
-    std::vector<std::shared_ptr<CREToken>> get_compatibility_requirements_subexpression(
+    std::vector<std::shared_ptr<CREToken>> get_cre_tokens(
         const std::unordered_map<SectionID, std::shared_ptr<ISection>>& all_registered_sections) const override;
 
     ov::util::MemoryView encode() const override;

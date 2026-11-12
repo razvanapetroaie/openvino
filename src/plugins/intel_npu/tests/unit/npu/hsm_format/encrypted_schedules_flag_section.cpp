@@ -43,8 +43,7 @@ TEST_P(EncryptedSchedulesFlagSectionTest, SetFlag) {
 }
 
 TEST_P(EncryptedSchedulesFlagSectionTest, CompatibilityReqsSubexpression) {
-    const std::vector<std::shared_ptr<CREToken>> requirements =
-        section->get_compatibility_requirements_subexpression({});
+    const std::vector<std::shared_ptr<CREToken>> requirements = section->get_cre_tokens({});
 
     if (encrypted_flag) {
         ASSERT_EQ(requirements.size(), 1);
@@ -57,7 +56,7 @@ TEST_P(EncryptedSchedulesFlagSectionTest, CompatibilityReqsSubexpression) {
 }
 
 TEST_P(EncryptedSchedulesFlagSectionTest, NullIndividualReqs) {
-    ASSERT_FALSE(section->get_individual_compatibility_requirements().has_value());
+    ASSERT_FALSE(section->get_individual_runtime_requirements().has_value());
 }
 
 TEST_P(EncryptedSchedulesFlagSectionTest, Alignment) {

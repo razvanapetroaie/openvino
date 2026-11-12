@@ -286,12 +286,12 @@ TEST_F(RuntimeRequirementsSectionTest, IsInline) {
 
 TEST_F(RuntimeRequirementsSectionTest, EmptyCompatibilityReqsSubexpression) {
     RuntimeRequirementsSection section(RuntimeRequirements({}, CRE(), {}));
-    ASSERT_TRUE(section.get_compatibility_requirements_subexpression({}).empty());
+    ASSERT_TRUE(section.get_cre_tokens({}).empty());
 }
 
 TEST_F(RuntimeRequirementsSectionTest, NullIndividualReqs) {
     RuntimeRequirementsSection section(RuntimeRequirements({}, CRE(), {}));
-    ASSERT_FALSE(section.get_individual_compatibility_requirements().has_value());
+    ASSERT_FALSE(section.get_individual_runtime_requirements().has_value());
 }
 
 TEST_F(RuntimeRequirementsSectionTest, WriteEmpty) {

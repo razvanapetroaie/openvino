@@ -12,7 +12,7 @@ class BatchSizeSection final : public ISection {
 public:
     BatchSizeSection(const int64_t batch_size);
 
-    std::vector<std::shared_ptr<CREToken>> get_compatibility_requirements_subexpression(
+    std::vector<std::shared_ptr<CREToken>> get_cre_tokens(
         const std::unordered_map<SectionID, std::shared_ptr<ISection>>& all_registered_sections) const override;
 
     int64_t get_batch_size() const;

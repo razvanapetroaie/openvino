@@ -70,7 +70,7 @@ private:
 /**
  * @brief Section able to write and parse the runtime requirements of the whole compiled model
  *
- * @note Overriding "get_compatibility_requirements_subexpression" to place the runtime requirements section type would
+ * @note Overriding "get_cre_tokens" to place the runtime requirements section type would
  * not make sense. Because the plugin importer would be required to understand the runtime requirements to reach that
  * section type.
  */

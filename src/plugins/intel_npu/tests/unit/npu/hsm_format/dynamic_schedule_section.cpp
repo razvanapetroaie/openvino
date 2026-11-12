@@ -76,11 +76,11 @@ TEST_F(DynamicScheduleSectionTest, IsInline) {
 
 TEST_F(DynamicScheduleSectionTest, CompatibilityReqsSubexpression) {
     std::shared_ptr<DynamicScheduleSection> section1 = create_section_using_dummy_content();
-    OV_EXPECT_THROW(section1->get_compatibility_requirements_subexpression({}), ov::Exception, _);
+    OV_EXPECT_THROW(section1->get_cre_tokens({}), ov::Exception, _);
 
     BlobSectionsRegistry registry;
     registry.register_section(section1);
-    std::vector<std::shared_ptr<CREToken>> requirements = section1->get_compatibility_requirements_subexpression({});
+    std::vector<std::shared_ptr<CREToken>> requirements = section1->get_cre_tokens({});
     ASSERT_EQ(requirements.size(), 2);
     ASSERT_TRUE(is_section_type(requirements.at(0)));
     ASSERT_TRUE(is_section_id(requirements.at(1)));
@@ -90,7 +90,7 @@ TEST_F(DynamicScheduleSectionTest, CompatibilityReqsSubexpression) {
 
     std::shared_ptr<DynamicScheduleSection> section2 = create_section_using_dummy_content();
     registry.register_section(section2);
-    requirements = section2->get_compatibility_requirements_subexpression({});
+    requirements = section2->get_cre_tokens({});
     ASSERT_EQ(requirements.size(), 2);
     ASSERT_TRUE(is_section_type(requirements.at(0)));
     ASSERT_TRUE(is_section_id(requirements.at(1)));

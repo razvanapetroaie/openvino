@@ -49,11 +49,11 @@ TEST_F(ISectionTest, IsInline) {
 }
 
 TEST_F(ISectionTest, GetIndividualRequirements) {
-    ASSERT_EQ(section.get_individual_compatibility_requirements(), std::nullopt);
+    ASSERT_EQ(section.get_individual_runtime_requirements(), std::nullopt);
 }
 
 TEST_F(ISectionTest, GetCRETokens) {
-    ASSERT_TRUE(section.get_compatibility_requirements_subexpression({}).empty());
+    ASSERT_TRUE(section.get_cre_tokens({}).empty());
 }
 
 TEST_F(ISectionTest, EncodeNotImplemented) {

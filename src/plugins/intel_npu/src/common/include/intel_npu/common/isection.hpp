@@ -64,7 +64,6 @@ public:
 
     virtual ov::util::MemoryView encode() const;
 
-    // TODO rename?
     /**
      * @brief Builds and returns the runtime requirements of the current section instance as a string.
      * @note The returned string should follow the "value" format dictated by the "compatibility string" parser:
@@ -72,7 +71,7 @@ public:
      *
      * @return The requirements as a string if any. std::nullopt otherwise.
      */
-    virtual std::optional<std::string> get_individual_compatibility_requirements() const;
+    virtual std::optional<std::string> get_individual_runtime_requirements() const;
 
     /**
      * @brief Get the compatibility requirements subexpression corresponding to the current section.
@@ -89,7 +88,7 @@ public:
      * section. Relevant if the requirements should take other sections into account.
      * @return The subexpression describing the requirements of the current section.
      */
-    virtual std::vector<std::shared_ptr<CREToken>> get_compatibility_requirements_subexpression(
+    virtual std::vector<std::shared_ptr<CREToken>> get_cre_tokens(
         const std::unordered_map<SectionID, std::shared_ptr<ISection>>& all_registered_sections) const;
 
 protected:

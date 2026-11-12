@@ -43,7 +43,7 @@ ov::util::MemoryView ISection::encode() const {
     OPENVINO_NOT_IMPLEMENTED;
 }
 
-std::optional<std::string> ISection::get_individual_compatibility_requirements() const {
+std::optional<std::string> ISection::get_individual_runtime_requirements() const {
     // No individual requirements by default
     return std::nullopt;
 }
@@ -58,7 +58,7 @@ void ISection::set_id(const SectionID& id) const {
     m_id = id;
 }
 
-std::vector<std::shared_ptr<CREToken>> ISection::get_compatibility_requirements_subexpression(
+std::vector<std::shared_ptr<CREToken>> ISection::get_cre_tokens(
     const std::unordered_map<SectionID, std::shared_ptr<ISection>>&
     /*all_registered_sections*/) const {
     // By default, no requirements are added

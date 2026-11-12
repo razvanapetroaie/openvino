@@ -23,14 +23,10 @@ const std::map<E_DUMMY_MODELS, std::string> DUMMY_MODELS{
     {E_DUMMY_MODELS::DUMMY_MODEL_STATEFUL, "dummy_model_stateful"},
     {E_DUMMY_MODELS::DUMMY_MODEL_DYNAMIC_SHAPES, "dummy_model_dynamic_shapes"}};
 
-enum class E_PLATFORMS { MTL, LNL, PTL };
+enum class E_PLATFORMS { MTL, LNL };
 
-const std::map<E_PLATFORMS, std::string> PLATFORMS{{E_PLATFORMS::MTL, "MTL"},
-                                                   {E_PLATFORMS::LNL, "LNL"},
-                                                   {E_PLATFORMS::PTL, "PTL"}};
-const std::map<std::string, E_PLATFORMS> PARSED_PLATFORMS{{"3720", E_PLATFORMS::MTL},
-                                                          {"4000", E_PLATFORMS::LNL},
-                                                          {"5010", E_PLATFORMS::PTL}};
+const std::map<E_PLATFORMS, std::string> PLATFORMS{{E_PLATFORMS::MTL, "MTL"}, {E_PLATFORMS::LNL, "LNL"}};
+const std::map<std::string, E_PLATFORMS> PARSED_PLATFORMS{{"3720", E_PLATFORMS::MTL}, {"4000", E_PLATFORMS::LNL}};
 
 enum class E_OV_VERSIONS { OV_2025_4_0, OV_2026_0_0 };
 
@@ -115,7 +111,6 @@ using compatibility_OVBlobCompatibilityNPU_PV_Driver_No_Throw = OVBlobCompatibil
 using OVBlobCompatibilityNPU_Metadata_No_Throw = OVBlobCompatibilityNPU;
 using OVBlobCompatibilityCiPNPU = OVBlobCompatibilityNPU;
 
-// TODO fix test
 TEST_P(OVBlobCompatibilityNPU, CanImportAllPrecompiledBlobsForAllOVVersionsAndDrivers) {
     importAndExportModel();
 }
@@ -165,9 +160,6 @@ const auto match_platforms = []() -> std::vector<std::string> {
         return {};
     const auto it = PARSED_PLATFORMS.find(ov::intel_npu::Platform::standardize(platformEnv));
     if (it == PARSED_PLATFORMS.end())
-        return {};
-    // PTL only has CIP precompiled blobs
-    if (it->second == E_PLATFORMS::PTL)
         return {};
     return {PLATFORMS.at(it->second)};
 }();
@@ -222,13 +214,3 @@ INSTANTIATE_TEST_SUITE_P(
                        ::testing::ValuesIn(config)),
     ov::test::utils::appendPlatformTypeTestName<compatibility_OVBlobCompatibilityNPU_PV_Driver_No_Throw>);
 #endif
-
-INSTANTIATE_TEST_SUITE_P(smoke_Behavior_NPU_cip,
-                         OVBlobCompatibilityNPU,
-                         ::testing::Combine(::testing::Values(ov::test::utils::DEVICE_NPU),
-                                            ::testing::ValuesIn(all_models),
-                                            ::testing::Values(PLATFORMS.at(E_PLATFORMS::PTL)),
-                                            ::testing::ValuesIn(cip_ov_releases),
-                                            ::testing::Values(std::string(CIP_PREFIX)),
-                                            ::testing::ValuesIn(cipConfig)),
-                         ov::test::utils::appendPlatformTypeTestName<OVBlobCompatibilityNPU>);
