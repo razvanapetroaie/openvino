@@ -33,10 +33,9 @@ SectionID BlobSectionsRegistry::register_section(const std::shared_ptr<ISection>
                     "The same section ID has been attributed to two distinct sections");
 
     if (parsed_id.has_value()) {
-        // TODO error prone?
         // Assume that the gap between m_next_section_id and parsed_id (if applicable) was already used within the
         // parsed blob. Therefore, the next section ID should be updated accordingly.
-        const uint16_t candidate = parsed_id.value().get_id() + 1;
+        const uint16_t candidate = parsed_id.value().get_value() + 1;
         OPENVINO_ASSERT(candidate != 0, "Integer overflow");
         m_next_section_id = candidate > m_next_section_id ? candidate : m_next_section_id;
     } else {

@@ -16,8 +16,8 @@ using testing::_;
 using SectionIdTest = ::testing::Test;
 
 TEST_F(SectionIdTest, CreateAndGetID) {
-    ASSERT_EQ(SectionID(0).get_id(), 0);
-    ASSERT_EQ(SectionID(std::numeric_limits<uint16_t>::max()).get_id(), std::numeric_limits<uint16_t>::max());
+    ASSERT_EQ(SectionID(0).get_value(), 0);
+    ASSERT_EQ(SectionID(std::numeric_limits<uint16_t>::max()).get_value(), std::numeric_limits<uint16_t>::max());
 }
 
 TEST_F(SectionIdTest, EqualOperator) {

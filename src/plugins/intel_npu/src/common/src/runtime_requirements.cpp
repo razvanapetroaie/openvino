@@ -173,7 +173,6 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> RuntimeRequirementsS
     // Check the format version
     const MajorMinorVersion parsed_version = MajorMinorVersion::from_string(parsed_content.at(VERSION_KEY.data()));
     if (parsed_version != CURRENT_RUNTIME_REQUIREMENTS_VERSION) {
-        // TODO check all %s got char*
         logger.warning("Unsupported runtime requirements version: %s", parsed_version.to_string().data());
         return std::nullopt;
     }
@@ -222,7 +221,6 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> RuntimeRequirementsS
         section_id_to_type.emplace(section_id.value(), section_type);
     }
 
-    // TODO check all classes got their log levels right
     return std::make_shared<RuntimeRequirementsSection>(
         RuntimeRequirements(sections_requirements, cre, section_id_to_type));
 };

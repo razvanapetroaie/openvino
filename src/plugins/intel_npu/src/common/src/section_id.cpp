@@ -11,15 +11,15 @@
 
 namespace intel_npu {
 
-SectionID::SectionID(const uint16_t section_id) : CREToken(), m_id(section_id) {}
+SectionID::SectionID(const uint16_t section_id) : CREToken(), m_value(section_id) {}
 
 // TODO consider renaming
-uint16_t SectionID::get_id() const {
-    return m_id;
+uint16_t SectionID::get_value() const {
+    return m_value;
 }
 
 bool SectionID::operator==(const SectionID& other) const {
-    return m_id == other.get_id();
+    return m_value == other.get_value();
 }
 
 bool SectionID::operator!=(const SectionID& other) const {
@@ -27,11 +27,11 @@ bool SectionID::operator!=(const SectionID& other) const {
 }
 
 bool SectionID::operator<(const SectionID& other) const {
-    return m_id < other.get_id();
+    return m_value < other.get_value();
 }
 
 std::string SectionID::to_string() const {
-    return std::to_string(m_id);
+    return std::to_string(m_value);
 }
 
 SectionID SectionID::from_string(const std::string_view id) {

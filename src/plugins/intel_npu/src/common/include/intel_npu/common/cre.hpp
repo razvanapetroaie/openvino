@@ -75,10 +75,9 @@ bool is_cre_special_token(const std::shared_ptr<CREToken>& candidate);
  */
 class CRE final {
 public:
-    CRE(const ov::log::Level log_level = ov::log::Level::WARNING);
+    CRE();
 
-    CRE(const std::vector<std::shared_ptr<CREToken>>& subexpression,
-        const ov::log::Level log_level = ov::log::Level::WARNING);
+    CRE(const std::vector<std::shared_ptr<CREToken>>& subexpression);
 
     /**
      * @brief Append a new token to the CRE, at depth-level 1. All tokens found at this depth-level are bound by a
@@ -121,7 +120,7 @@ public:
     /**
      * @brief Deserializes the CRE string into internal token codes.
      */
-    static CRE from_string(const std::string_view cre, const ov::log::Level log_level = ov::log::Level::WARNING);
+    static CRE from_string(const std::string_view cre);
 
     bool operator==(const CRE& other) const;
 

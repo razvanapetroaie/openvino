@@ -12,8 +12,6 @@ using namespace intel_npu;
 namespace {
 
 constexpr std::string_view PARSE_FAILURE_MESSAGE = "Failed to parse the mandatory section ";
-constexpr std::string_view MANDATORY_READER_MISSING_MESSAGE = "No section reader found for mandatory section %s ";
-constexpr std::string_view OPTIONAL_READER_MISSING_MESSAGE = "No section reader found for optional section %s";
 constexpr std::string_view OPTIONAL_SECTION_PARSING_FAILED_MESSAGE = "The parsing of optional section %s has failed.";
 
 const ov::runtime::hsm::SectionTag RUNTIME_REQUIREMENTS_TAG =
@@ -30,8 +28,8 @@ ov::runtime::hsm::SectionTagReserved build_section_tag(const std::shared_ptr<ISe
 
     const ov::runtime::hsm::SectionTag tag =
         ov::runtime::hsm::SectionTag::make(static_cast<uint32_t>(section->get_type().get_code()), section->is_inline());
-    std::array<uint8_t, 4> reserved_bytes{static_cast<uint8_t>(static_cast<uint8_t>(id.get_id()) & 0xFF),
-                                          static_cast<uint8_t>(static_cast<uint8_t>(id.get_id() >> 8) & 0xFF),
+    std::array<uint8_t, 4> reserved_bytes{static_cast<uint8_t>(static_cast<uint8_t>(id.get_value()) & 0xFF),
+                                          static_cast<uint8_t>(static_cast<uint8_t>(id.get_value() >> 8) & 0xFF),
                                           0,
                                           0};
     return ov::runtime::hsm::SectionTagReserved(tag, reserved_bytes);
@@ -84,7 +82,9 @@ void parse_section(
     const Logger& logger) {
     if (is_mandatory) {
         logger.trace("Parsing the mandatory section %s", debug_name.data());
-        OPENVINO_ASSERT(section_readers.count(section_type), MANDATORY_READER_MISSING_MESSAGE, debug_name);
+        OPENVINO_ASSERT(section_readers.count(section_type),
+                        "No section reader found for mandatory section ",
+                        debug_name);
 
         const std::optional<std::shared_ptr<ISection>> parsed_section =
             base_reader.decode(manifest_entry.device,
@@ -97,7 +97,7 @@ void parse_section(
 
     logger.trace("Parsing the optional section %s", debug_name.data());
     if (!section_readers.count(section_type)) {
-        logger.debug(OPTIONAL_READER_MISSING_MESSAGE.data(), debug_name.data());
+        logger.debug("No section reader found for optional section %s", debug_name.data());
         logger.warning(OPTIONAL_SECTION_PARSING_FAILED_MESSAGE.data(), debug_name.data());
         return;
     }

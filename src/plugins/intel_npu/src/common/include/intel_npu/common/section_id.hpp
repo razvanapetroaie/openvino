@@ -19,7 +19,7 @@ class SectionID final : public CREToken {
 public:
     SectionID(const uint16_t section_id);
 
-    uint16_t get_id() const;
+    uint16_t get_value() const;
 
     bool operator==(const SectionID& other) const;
 
@@ -38,7 +38,7 @@ private:
     /**
      * @note The size needs to be fixed (2 bytes) since this value is written inside the blob manifest
      */
-    uint16_t m_id;
+    uint16_t m_value;
 };
 
 std::ostream& operator<<(std::ostream& os, const SectionID& id);
@@ -52,6 +52,6 @@ bool is_section_id(const std::shared_ptr<CREToken>& token);
 template <>
 struct std::hash<intel_npu::SectionID> {
     std::size_t operator()(const intel_npu::SectionID& id) const noexcept {
-        return std::hash<uint16_t>()(static_cast<uint16_t>(id.get_id()));
+        return std::hash<uint16_t>()(static_cast<uint16_t>(id.get_value()));
     }
 };

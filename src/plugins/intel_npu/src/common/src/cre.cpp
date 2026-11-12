@@ -25,6 +25,19 @@ constexpr std::string_view CLOSE_TOKEN_NAME = "CLOSE";
 constexpr std::string_view UNSUPPORTED_COMPATIBILITY_CHECK_MESSAGE = "Unsupported \"ov::CompatibilityCheck\" value";
 constexpr std::string_view CRE_UNEXPECTED_END_MESSAGE = "The CRE ended unexpectedly";
 
+std::string compatibility_check_to_string(const ov::CompatibilityCheck value) {
+    switch (value) {
+    case ov::CompatibilityCheck::SUPPORTED:
+        return "SUPPORTED";
+    case ov::CompatibilityCheck::UNSUPPORTED:
+        return "UNSUPPORTED";
+    case ov::CompatibilityCheck::NOT_APPLICABLE:
+        return "NOT_APPLICABLE";
+    default:
+        OPENVINO_THROW("Unsupported compatiblity check value");
+    }
+}
+
 bool is_close_special_token(const std::shared_ptr<CREToken>& candidate) {
     const auto special_token = std::dynamic_pointer_cast<CRESpecialToken>(candidate);
     return special_token != nullptr && *special_token == CRE::CLOSE;
@@ -312,10 +325,10 @@ bool is_cre_special_token(const std::shared_ptr<CREToken>& candidate) {
     return std::dynamic_pointer_cast<CRESpecialToken>(candidate) != nullptr;
 }
 
-CRE::CRE(const ov::log::Level log_level) : m_logger("CRE", log_level) {}
+CRE::CRE() : m_logger("CRE", Logger::global().level()) {}
 
 CRE::CRE(const std::vector<std::shared_ptr<CREToken>>& subexpression, const ov::log::Level log_level)
-    : m_logger("CRE", log_level) {
+    : m_logger("CRE", Logger::global().level()) {
     if (!subexpression.empty()) {
         CRE_ASSERT(is_expression_valid(subexpression), "Received an invalid subexpression");
         m_subexpressions.push_back(subexpression);
@@ -515,7 +528,9 @@ ov::CompatibilityCheck CRE::evaluate(
                                                              ? section_type_evaluators.at(*section_type)->get_result()
                                                              : true;
                 ov::CompatibilityCheck operand = bool_to_compatibility_check(type_evaluation_results.at(*section_type));
-                m_logger.trace("Section type %lu evaluated to %d", section_type, operand);
+                m_logger.trace("Section type %s evaluated to %s",
+                               section_type->to_string().data(),
+                               compatibility_check_to_string(operand).data());
 
                 // Look for a section ID after the section type token
                 advance_iterator(expression_iterator, expression_end);
@@ -532,7 +547,9 @@ ov::CompatibilityCheck CRE::evaluate(
                                 : ov::CompatibilityCheck::SUPPORTED;
                         operand = instance_evaluation_results.at(*section_id);
 
-                        m_logger.trace("Section ID %s evaluated to %d", section_id, operand);
+                        m_logger.trace("Section ID %s evaluated to %s",
+                                       section_id->to_string().data(),
+                                       compatibility_check_to_string(operand).data());
                     }
                 } else {
                     --expression_iterator;
@@ -679,8 +696,8 @@ std::string CRE::to_string() const {
     return result;
 }
 
-CRE CRE::from_string(const std::string_view cre, const ov::log::Level log_level) {
-    Logger logger("CRE::from_string", log_level);
+CRE CRE::from_string(const std::string_view cre) {
+    Logger logger("CRE::from_string", Logger::global().level());
     logger.debug("Converting the string CRE \"%s\" to internal tokens", cre.data());
     if (cre.empty()) {
         return CRE();

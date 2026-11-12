@@ -101,7 +101,7 @@ TEST_F(BlobSectionsRegistryTest, ArgumentIdIncreasesAttributeId) {
     const auto section = std::make_shared<BatchSizeSection>(0);
     registry.register_section(section);
     ASSERT_TRUE(section->get_id().has_value());
-    ASSERT_EQ(section->get_id()->get_id(), 2);
+    ASSERT_EQ(section->get_id()->get_value(), 2);
 }
 
 TEST_F(BlobSectionsRegistryTest, NormalRegistryGetters) {
@@ -118,21 +118,21 @@ TEST_F(BlobSectionsRegistryTest, NormalRegistryGetters) {
     ASSERT_TRUE(casted_section_1);
     ASSERT_EQ(casted_section_1->get_batch_size(), 0);
     ASSERT_TRUE(casted_section_1->get_id().has_value());
-    ASSERT_EQ(casted_section_1->get_id()->get_id(), 0);
+    ASSERT_EQ(casted_section_1->get_id()->get_value(), 0);
 
     const auto retrieved_section_2 = registry.retrieve_section(1);
     const auto casted_section_2 = std::dynamic_pointer_cast<BatchSizeSection>(retrieved_section_2);
     ASSERT_TRUE(casted_section_2);
     ASSERT_EQ(casted_section_2->get_batch_size(), 1);
     ASSERT_TRUE(casted_section_2->get_id().has_value());
-    ASSERT_EQ(casted_section_2->get_id()->get_id(), 1);
+    ASSERT_EQ(casted_section_2->get_id()->get_value(), 1);
 
     const auto retrieved_section_3 = registry.retrieve_section(2);
     const auto casted_section_3 = std::dynamic_pointer_cast<CompilerVersionSection>(retrieved_section_3);
     ASSERT_TRUE(casted_section_3);
     ASSERT_EQ(casted_section_3->get_compiler_version(), 2);
     ASSERT_TRUE(casted_section_3->get_id().has_value());
-    ASSERT_EQ(casted_section_3->get_id()->get_id(), 2);
+    ASSERT_EQ(casted_section_3->get_id()->get_value(), 2);
 
     ASSERT_EQ(registry.retrieve_section(3), nullptr);
 

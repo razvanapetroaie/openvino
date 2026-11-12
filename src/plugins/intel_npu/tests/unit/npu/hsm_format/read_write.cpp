@@ -65,10 +65,11 @@ ov::runtime::hsm::SectionTagReserved build_section_tag(const SectionType& sectio
                                                        const bool is_inline) {
     const ov::runtime::hsm::SectionTag tag =
         ov::runtime::hsm::SectionTag::make(static_cast<uint32_t>(section_type.get_code()), is_inline);
-    std::array<uint8_t, 4> reserved_bytes{static_cast<uint8_t>(static_cast<uint8_t>(section_id.get_id()) & 0xFF),
-                                          static_cast<uint8_t>(static_cast<uint8_t>(section_id.get_id() >> 8) & 0xFF),
-                                          0,
-                                          0};
+    std::array<uint8_t, 4> reserved_bytes{
+        static_cast<uint8_t>(static_cast<uint8_t>(section_id.get_value()) & 0xFF),
+        static_cast<uint8_t>(static_cast<uint8_t>(section_id.get_value() >> 8) & 0xFF),
+        0,
+        0};
     return ov::runtime::hsm::SectionTagReserved(tag, reserved_bytes);
 }
 

@@ -113,7 +113,7 @@ ov::runtime::hsm::SectionDecoder<std::shared_ptr<ISection>> IOLayoutsSection::de
 
             try {
                 layouts.push_back(ov::Layout(std::move(layout_string)));
-                logger.trace("Read layout %s", layout_string);
+                logger.trace("Read layout %s", layout_string.data());
             } catch (const ov::Exception&) {
                 logger.warning("Error encountered while constructing an ov::Layout object. %s index: %d. Value "
                                "read from blob: %s. A default value will be used instead.",
